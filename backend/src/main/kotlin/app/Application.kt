@@ -30,8 +30,10 @@ import io.ktor.server.sessions.cookie
 import io.ktor.server.sessions.set
 import io.ktor.server.sessions.sessions
 import io.ktor.util.hex
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
 import java.net.URI
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -156,6 +158,9 @@ fun Application.module() {
                 put("id", user.id.toString())
                 put("email", user.email)
                 put("displayName", user.displayName)
+                put("companyId", user.companyId.toString())
+                put("isCompanyAdmin", user.isCompanyAdmin)
+                putJsonArray("managedTeamIds") { user.managedTeamIds.forEach { add(JsonPrimitive(it.toString())) } }
             }
             call.respondText(body.toString(), ContentType.Application.Json)
         }

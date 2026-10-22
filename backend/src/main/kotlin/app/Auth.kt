@@ -20,7 +20,20 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class UserSession(val userId: String)
 
-data class CurrentUser(val id: UUID, val email: String, val displayName: String, val deactivated: Boolean)
+data class CurrentUser(
+    val id: UUID,
+    val companyId: UUID,
+    val email: String,
+    val displayName: String,
+    val deactivated: Boolean,
+    val isCompanyAdmin: Boolean,
+    // team_ids where this user is an active MANAGER member.
+    val managedTeamIds: Set<UUID>,
+)
+
+// Callers must answer 404, not 403, when false, so a team outside reach looks like a missing one.
+fun CurrentUser.canManage(ds: DataSource, teamId: UUID): Boolean =
+    (isCompanyAdmin || teamId in managedTeamIds) && teamInCompany(ds, teamId, companyId)
 
 sealed interface Login {
     data class Ok(val userId: UUID) : Login
@@ -69,11 +82,36 @@ private fun claimInvite(c: Connection, id: UUID, sub: String): Login {
 
 fun loadCurrentUser(ds: DataSource, id: UUID): CurrentUser? =
     ds.connection.use { c ->
-        c.prepareStatement("SELECT email, display_name, deactivated_at IS NOT NULL FROM user_account WHERE id = ?").use { st ->
+        val user = c.prepareStatement(
+            "SELECT company_id, email, display_name, deactivated_at IS NOT NULL, is_company_admin FROM user_account WHERE id = ?"
+        ).use { st ->
             st.setObject(1, id)
             st.executeQuery().use { rs ->
-                if (rs.next()) CurrentUser(id, rs.getString(1), rs.getString(2), rs.getBoolean(3)) else null
+                if (rs.next()) {
+                    CurrentUser(
+                        id, rs.getObject(1, UUID::class.java), rs.getString(2), rs.getString(3),
+                        rs.getBoolean(4), rs.getBoolean(5), emptySet(),
+                    )
+                } else {
+                    null
+                }
             }
+        } ?: return@use null
+        user.copy(managedTeamIds = managedTeamIds(c, id))
+    }
+
+private fun managedTeamIds(c: Connection, userId: UUID): Set<UUID> =
+    c.prepareStatement("SELECT team_id FROM team_member WHERE user_id = ? AND role = 'MANAGER' AND active").use { st ->
+        st.setObject(1, userId)
+        st.executeQuery().use { rs -> buildSet { while (rs.next()) add(rs.getObject(1, UUID::class.java)) } }
+    }
+
+private fun teamInCompany(ds: DataSource, teamId: UUID, companyId: UUID): Boolean =
+    ds.connection.use { c ->
+        c.prepareStatement("SELECT 1 FROM team WHERE id = ? AND company_id = ?").use { st ->
+            st.setObject(1, teamId)
+            st.setObject(2, companyId)
+            st.executeQuery().use { it.next() }
         }
     }
 
