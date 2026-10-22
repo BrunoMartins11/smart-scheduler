@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>My availability</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+body{margin:0}
+a{color:#0e7490}a:hover{color:#155e75}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #ffffff; color: #0f172a; font-family: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif; font-size: 14px; line-height: 20px; display: flex; flex-direction: column; overflow: hidden;">
+  <header style="padding: 20px 16px 12px; display: flex; flex-direction: column; gap: 4px;">
+    <h1 style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 700;">November</h1>
+    <span style="color: #475569;">Mark the shifts you can do by Sat 24 Oct</span>
+  </header>
+
+  <div style="padding: 0 16px 12px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid #e2e8f0;">
+    <div role="group" aria-label="Mark to apply" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+      <sc-for list="{{brushes}}" as="b" hint-placeholder-count="2">
+        <button type="button" onClick="{{b.pick}}" aria-pressed="{{b.pressed}}" style="height: 44px; border-radius: 8px; border: {{b.border}}; background: {{b.bg}}; color: {{b.fg}}; font: inherit; font-weight: 700; cursor: pointer;">{{b.label}}</button>
+      </sc-for>
+    </div>
+    <span role="status" style="font-size: 12px; color: #475569;">{{summary}}</span>
+  </div>
+
+  <div style="flex-grow: 1; overflow-y: auto; padding: 4px 16px 16px; display: flex; flex-direction: column;">
+    <sc-for list="{{days}}" as="day" hint-placeholder-count="9">
+      <div style="display: grid; grid-template-columns: 56px repeat(2, minmax(0, 1fr)); gap: 8px; align-items: center; padding: 6px 0;">
+        <div style="display: flex; flex-direction: column; line-height: 16px;">
+          <span style="font-size: 12px; color: #475569;">{{day.weekday}}</span>
+          <span style="font-weight: 700; font-size: 16px; line-height: 22px;">{{day.num}}</span>
+        </div>
+        <sc-for list="{{day.shifts}}" as="s" hint-placeholder-count="2">
+          <button type="button" onClick="{{s.tap}}" aria-label="{{s.aria}}" style="width: 100%; height: 44px; border-radius: 8px; border: 1px solid {{s.border}}; background: {{s.bg}}; color: {{s.fg}}; font: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 16px; cursor: pointer;">
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <sc-if value="{{s.available}}" hint-placeholder-val="{{false}}"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></sc-if>
+              <sc-if value="{{s.ifNeeded}}" hint-placeholder-val="{{false}}"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12h14"></path></svg></sc-if>
+              <span>{{s.label}}</span>
+            </span>
+            <sc-if value="{{s.byManager}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px;">by manager</span></sc-if>
+          </button>
+        </sc-for>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.state || {};
+    // A mark entered by the manager on the doctor's behalf (D8) carries by: 'manager' until the doctor changes it.
+    const marks = s.marks || {
+      '2D': { kind: 'available' }, '3D': { kind: 'available' }, '3N': { kind: 'ifNeeded' },
+      '4N': { kind: 'available' }, '5N': { kind: 'available' }, '6D': { kind: 'ifNeeded' },
+      '7D': { kind: 'available', by: 'manager' }, '7N': { kind: 'ifNeeded', by: 'manager' }, '9D': { kind: 'available' }
+    };
+    const brush = s.brush || 'available';
+
+    const looks = {
+      available: { border: '#059669', bg: '#ecfdf5', fg: '#065f46', word: 'Available' },
+      ifNeeded: { border: '#f59e0b', bg: '#fffbeb', fg: '#92400e', word: 'If needed' },
+      none: { border: '#e2e8f0', bg: '#ffffff', fg: '#475569', word: 'Not available' }
+    };
+
+    const brushes = ['available', 'ifNeeded'].map((id) => {
+      const on = brush === id;
+      return {
+        label: looks[id].word,
+        pressed: on ? 'true' : 'false',
+        border: on ? '2px solid ' + looks[id].border : '1px solid #e2e8f0',
+        bg: on ? looks[id].bg : '#ffffff',
+        fg: on ? looks[id].fg : '#0f172a',
+        pick: () => this.setState({ brush: id })
+      };
+    });
+
+    const tap = (key) => () => {
+      const cur = marks[key] ? marks[key].kind : 'none';
+      const copy = Object.assign({}, marks);
+      if (cur === brush) delete copy[key]; else copy[key] = { kind: brush };
+      this.setState({ marks: copy });
+    };
+
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const shift = (n, code, label) => {
+      const key = n + code;
+      const m = marks[key] ? marks[key].kind : 'none';
+      const byManager = !!(marks[key] && marks[key].by === 'manager');
+      const look = looks[m];
+      return {
+        label: label,
+        aria: label + ' shift, ' + weekdays[(n - 1) % 7] + ' ' + n + ' Nov: ' + look.word + (byManager ? ', entered by your manager' : ''),
+        border: look.border, bg: look.bg, fg: look.fg,
+        available: m === 'available', ifNeeded: m === 'ifNeeded', byManager: byManager,
+        tap: tap(key)
+      };
+    };
+    const days = [];
+    for (let n = 1; n <= 10; n++) {
+      days.push({ weekday: weekdays[(n - 1) % 7], num: n, shifts: [shift(n, 'D', 'Day'), shift(n, 'N', 'Night')] });
+    }
+
+    const kinds = Object.keys(marks).map((k) => marks[k].kind);
+    const count = (k) => kinds.filter((x) => x === k).length;
+    const summary = count('available') + ' available · ' + count('ifNeeded') + ' if needed. Unmarked shifts mean you\'re not available.';
+
+    return { brushes: brushes, days: days, summary: summary };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Unfilled shift</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+body{margin:0}
+a{color:#0e7490}a:hover{color:#155e75}
+</style>
+</helmet>
+<aside aria-label="Shift details" style="width: 480px; height: 980px; box-sizing: border-box; background: #ffffff; border-left: 1px solid #e2e8f0; color: #0f172a; font-family: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif; font-size: 14px; line-height: 20px; display: flex; flex-direction: column;">
+  <div style="padding: 20px 24px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;">
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="width: 24px; height: 20px; border-radius: 4px; background: #e0e7ff; color: #312e81; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;">N</span>
+        <h2 style="margin: 0; font-size: 18px; line-height: 28px; font-weight: 700;">Night · Wed 4 Nov</h2>
+      </div>
+      <div style="color: #475569;">20:00 – Thu 08:00 · needs 2 doctors</div>
+    </div>
+    <a href="Main.dc.html" aria-label="Close" style="width: 36px; height: 36px; border-radius: 6px; color: #475569; display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"></path></svg></a>
+  </div>
+
+  <div style="flex-grow: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 20px;">
+    <div role="status" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 6px; background: {{bannerBg}}; color: {{bannerFg}};">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4M12 16h.01"></path></svg>
+      <span style="font-weight: 700;">{{bannerText}}</span>
+    </div>
+
+    <section style="display: flex; flex-direction: column; gap: 8px;">
+      <h3 style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #475569;">Assigned</h3>
+      <sc-for list="{{assigned}}" as="a" hint-placeholder-count="1">
+        <div style="display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 6px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+            <span style="font-weight: 700;">{{a.name}}</span>
+            <button type="button" onClick="{{a.remove}}" style="height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; font: inherit; font-size: 12px; cursor: pointer;">Remove</button>
+          </div>
+          <sc-if value="{{a.needsConfirm}}" hint-placeholder-val="{{false}}">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: #92400e; background: #fffbeb; border-radius: 4px; padding: 4px 8px;">
+              <span><strong>Needs confirmation:</strong> marked "If needed"</span>
+              <button type="button" onClick="{{a.confirm}}" style="height: 28px; padding: 0 8px; border-radius: 6px; border: 1px solid #f59e0b; background: #ffffff; color: #92400e; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;">Mark confirmed</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{a.hasOverride}}" hint-placeholder-val="{{false}}">
+            <div style="font-size: 12px; color: #9a3412; background: #fff7ed; border-radius: 4px; padding: 4px 8px;"><strong>Override:</strong> {{a.override}}</div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </section>
+
+    <sc-if value="{{showSuggestion}}" hint-placeholder-val="{{true}}">
+      <section style="display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 8px; background: #ecfeff; border: 1px solid #a5f3fc;">
+        <h3 style="margin: 0; font-size: 14px; font-weight: 700; color: #155e75;">Suggested fix</h3>
+        <p style="margin: 0; color: #164e63;">Assign <strong>Inês Ferreira</strong>. She marked this shift "If needed" after the last engine run, so confirm with her before publishing. No rules are broken.</p>
+        <div>
+          <button type="button" onClick="{{assignSuggested}}" style="height: 40px; padding: 0 16px; border-radius: 6px; border: 1px solid #0e7490; background: #0e7490; color: #ffffff; font: inherit; font-weight: 700; cursor: pointer;">Assign Inês Ferreira</button>
+        </div>
+      </section>
+    </sc-if>
+
+    <section style="display: flex; flex-direction: column; gap: 14px;">
+      <h3 style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #475569;">Other doctors</h3>
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <span style="align-self: flex-start; padding: 0 8px; height: 22px; border-radius: 9999px; background: {{g.chipBg}}; color: {{g.chipFg}}; font-size: 12px; font-weight: 700; display: flex; align-items: center;">{{g.label}}</span>
+          <sc-for list="{{g.items}}" as="p" hint-placeholder-count="2">
+            <div style="display: flex; flex-direction: column;">
+              <div style="padding: 4px 2px; display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 36px;">
+                <span><strong>{{p.name}}</strong> · {{p.detail}}</span>
+                <sc-if value="{{p.showAssign}}" hint-placeholder-val="{{false}}">
+                  <button type="button" onClick="{{p.assign}}" style="height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; color: #0f172a; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;">Assign</button>
+                </sc-if>
+                <sc-if value="{{p.showOverride}}" hint-placeholder-val="{{true}}">
+                  <button type="button" onClick="{{p.openOverride}}" style="height: 32px; padding: 0 8px; border: 0; background: transparent; color: #c2410c; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;">Assign anyway…</button>
+                </sc-if>
+              </div>
+              <sc-if value="{{p.isOpen}}" hint-placeholder-val="{{false}}">
+                <div style="border: 1px solid #fdba74; border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; background: #fff7ed;">
+                  <label for="override-reason" style="font-size: 12px; font-weight: 700; color: #9a3412;">Reason for override (required, saved to the audit log)</label>
+                  <textarea id="override-reason" rows="2" value="{{reason}}" onChange="{{onReason}}" placeholder="For example: no other doctor available, agreed by phone" style="font: inherit; padding: 8px 10px; border: 1px solid #fdba74; border-radius: 6px; resize: vertical; background: #ffffff; color: #0f172a;"></textarea>
+                  <div style="display: flex; gap: 8px;">
+                    <button type="button" onClick="{{p.confirm}}" disabled="{{confirmDisabled}}" style="height: 36px; padding: 0 12px; border-radius: 6px; border: 1px solid {{confirmBg}}; background: {{confirmBg}}; color: {{confirmFg}}; font: inherit; font-weight: 700; cursor: {{confirmCursor}};">Assign anyway</button>
+                    <button type="button" onClick="{{cancel}}" style="height: 36px; padding: 0 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; font: inherit; cursor: pointer;">Cancel</button>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </sc-for>
+      <sc-if value="{{full}}" hint-placeholder-val="{{false}}">
+        <p style="margin: 0; color: #475569; font-size: 12px;">This shift is full. Remove someone to assign a different doctor.</p>
+      </sc-if>
+    </section>
+  </div>
+  <div style="padding: 16px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end;">
+    <a href="Main.dc.html" style="height: 40px; padding: 0 16px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; color: #0f172a; font-weight: 700; display: flex; align-items: center; text-decoration: none;">Back to schedule</a>
+  </div>
+</aside>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":480,"height":980}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.state || {};
+    const assigned = s.assigned || [{ id: 'ana', name: 'Ana Costa', override: '', ifNeeded: false }];
+    const confirmed = s.confirmed || {};
+    const open = s.open || '';
+    const reason = s.reason || '';
+    const people = [
+      { id: 'ines', name: 'Inês Ferreira', group: 'ifNeeded', detail: 'marked If needed' },
+      { id: 'tiago', name: 'Tiago Lopes', group: 'none', detail: "didn't mark this shift" },
+      { id: 'joao', name: 'João Silva', group: 'rest', detail: 'day shift Wed 4 ends 20:00' },
+      { id: 'marta', name: 'Marta Rocha', group: 'rest', detail: 'day shift Wed 4 ends 20:00' },
+      { id: 'rui', name: 'Rui Almeida', group: 'rest', detail: 'day shift Thu 5 starts 08:00' },
+      { id: 'pedro', name: 'Pedro Santos', group: 'nights', detail: 'rest until Thu 5, 08:00' },
+      { id: 'sofia', name: 'Sofia Martins', group: 'nights', detail: 'rest until Fri 6, 08:00' }
+    ];
+    const groupDefs = [
+      { id: 'ifNeeded', label: 'If needed · confirm before publishing', breaks: false, chipBg: '#fef3c7', chipFg: '#92400e' },
+      { id: 'none', label: 'Not available (no mark)', breaks: true, chipBg: '#f1f5f9', chipFg: '#334155' },
+      { id: 'rest', label: '12 h rest between shifts', breaks: true, chipBg: '#f1f5f9', chipFg: '#334155' },
+      { id: 'nights', label: '48 h rest after a run of nights', breaks: true, chipBg: '#f1f5f9', chipFg: '#334155' }
+    ];
+    const full = assigned.length >= 2;
+    const isAssigned = (id) => assigned.some((a) => a.id === id);
+    const add = (p, override) => this.setState({ assigned: assigned.concat([{ id: p.id, name: p.name, override: override, ifNeeded: p.group === 'ifNeeded' }]), open: '', reason: '' });
+    const toConfirm = assigned.filter((a) => a.ifNeeded && !confirmed[a.id]).length;
+
+    const groups = groupDefs.map((g) => {
+      const items = people.filter((p) => p.group === g.id && !isAssigned(p.id)).map((p) => ({
+        name: p.name,
+        detail: p.detail,
+        showAssign: !full && !g.breaks,
+        showOverride: !full && g.breaks && open !== p.id,
+        isOpen: !full && open === p.id,
+        assign: () => add(p, ''),
+        openOverride: () => this.setState({ open: p.id, reason: '' }),
+        confirm: () => { if (reason.trim()) add(p, reason.trim()); }
+      }));
+      return { label: g.label, chipBg: g.chipBg, chipFg: g.chipFg, items: items, hasItems: items.length > 0 };
+    }).filter((g) => g.hasItems);
+
+    const confirmDisabled = !reason.trim();
+    const ines = people[0];
+    return {
+      assigned: assigned.map((a) => ({
+        name: a.name,
+        override: a.override,
+        hasOverride: !!a.override,
+        needsConfirm: a.ifNeeded && !confirmed[a.id],
+        confirm: () => this.setState({ confirmed: Object.assign({}, confirmed, { [a.id]: true }) }),
+        remove: () => this.setState({ assigned: assigned.filter((x) => x.id !== a.id) })
+      })),
+      groups: groups,
+      full: full,
+      showSuggestion: !full && !isAssigned('ines'),
+      assignSuggested: () => add(ines, ''),
+      bannerText: assigned.length + ' of 2 filled' + (full ? (toConfirm ? ' · ' + toConfirm + ' to confirm' : ' · fully staffed') : ''),
+      bannerBg: !full ? '#fee2e2' : (toConfirm ? '#fef3c7' : '#dcfce7'),
+      bannerFg: !full ? '#991b1b' : (toConfirm ? '#92400e' : '#166534'),
+      reason: reason,
+      onReason: (e) => this.setState({ reason: e.target.value }),
+      cancel: () => this.setState({ open: '', reason: '' }),
+      confirmDisabled: confirmDisabled,
+      confirmBg: confirmDisabled ? '#e2e8f0' : '#c2410c',
+      confirmFg: confirmDisabled ? '#475569' : '#ffffff',
+      confirmCursor: confirmDisabled ? 'not-allowed' : 'pointer'
+    };
+  }
+}
+</script>
+</body>
+</html>

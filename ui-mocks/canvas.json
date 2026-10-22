@@ -1,0 +1,72 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Availability.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Doctor · Availability",
+      "w": 390,
+      "x": 0,
+      "y": 1560
+    },
+    "Main.dc.html": {
+      "expand": "fill",
+      "h": 1140,
+      "is_interactive": true,
+      "title": "Manager · Schedule review",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "MySchedule.dc.html": {
+      "h": 844,
+      "title": "Doctor · My shifts",
+      "w": 390,
+      "x": 470,
+      "y": 1560
+    },
+    "ShiftDetail.dc.html": {
+      "h": 980,
+      "is_interactive": true,
+      "title": "Manager · Unfilled shift",
+      "w": 480,
+      "x": 1520,
+      "y": 0
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-17T12:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "doc": {
+      "kind": "title1",
+      "maxW": 860,
+      "text": "Doctor (mobile)",
+      "w": 240,
+      "x": 0,
+      "y": 1300
+    },
+    "mgr": {
+      "kind": "title1",
+      "maxW": 2000,
+      "text": "Manager (desktop)",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "ShiftDetail.dc.html",
+    "Availability.dc.html",
+    "MySchedule.dc.html"
+  ],
+  "pages": [],
+  "title": "Smart Scheduler UI Mocks"
+}

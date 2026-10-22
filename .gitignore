@@ -1,0 +1,25 @@
+# Gradle / Kotlin
+.gradle/
+build/
+backend/out/
+*.class
+*.kt.class
+.kotlin/
+
+# IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Node / frontend
+node_modules/
+dist/
+
+# Env
+.env
+.env.*
+
+# OS
+.DS_Store

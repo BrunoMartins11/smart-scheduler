@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Schedule review</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+body{margin:0}
+a{color:#0e7490}a:hover{color:#155e75}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #0e7490;outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height: 1140px; background: #ffffff; color: #0f172a; font-family: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif; font-size: 14px; line-height: 20px;">
+  <header style="background: #ffffff; border-bottom: 1px solid #e2e8f0;">
+    <div style="max-width: 1440px; margin: 0 auto; padding: 12px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 24px;">
+      <div style="font-weight: 700; font-size: 16px;">Smart Scheduler</div>
+      <nav style="display: flex; flex-wrap: wrap; gap: 4px; flex-grow: 1;">
+        <a href="#" style="padding: 8px 12px; border-radius: 6px; background: #ecfeff; color: #155e75; font-weight: 700; text-decoration: none;">Schedule</a>
+        <a href="#" style="padding: 8px 12px; border-radius: 6px; color: #475569; text-decoration: none;">Team</a>
+        <a href="#" style="padding: 8px 12px; border-radius: 6px; color: #475569; text-decoration: none;">Shifts</a>
+        <a href="#" style="padding: 8px 12px; border-radius: 6px; color: #475569; text-decoration: none;">Rules</a>
+      </nav>
+      <div style="display: flex; align-items: center; gap: 8px; color: #475569;">
+        <span style="width: 32px; height: 32px; border-radius: 9999px; background: #e2e8f0; color: #334155; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;">HM</span>
+        <span>Dr. Helena Matos · Manager</span>
+      </div>
+    </div>
+  </header>
+
+  <div style="max-width: 1440px; margin: 0 auto; padding: 16px 24px 32px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 24px;">
+    <aside aria-label="Calendars" style="flex: 1 1 256px; max-width: 100%; display: flex; flex-direction: column; gap: 20px;">
+      <button type="button" onClick="{{regenerate}}" style="align-self: flex-start; height: 48px; padding: 0 20px 0 16px; border-radius: 16px; border: 0; background: #ffffff; color: #0f172a; box-shadow: 0 1px 3px rgba(15,23,42,0.2), 0 1px 2px rgba(15,23,42,0.12); font: inherit; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 10px;"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0e7490" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 3v6h-6"></path></svg>Run engine again</button>
+
+      <section aria-label="November 2026" style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-weight: 700; padding: 0 4px;">November 2026</div>
+        <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); font-size: 12px; color: #475569; text-align: center;">
+          <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); row-gap: 2px; font-size: 12px; text-align: center;">
+          <sc-for list="{{mini}}" as="c" hint-placeholder-count="42">
+            <div style="display: flex; justify-content: center;">
+              <sc-if value="{{c.isBtn}}" hint-placeholder-val="{{false}}">
+                <button type="button" onClick="{{c.go}}" aria-label="{{c.aria}}" style="width: 28px; height: 28px; border: 0; border-radius: 9999px; background: {{c.bg}}; color: {{c.fg}}; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;">{{c.num}}</button>
+              </sc-if>
+              <sc-if value="{{c.isText}}" hint-placeholder-val="{{true}}">
+                <span style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: {{c.color}};">{{c.num}}</span>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <span style="font-size: 12px; color: #475569; padding: 0 4px;">Bold dates are in this period (2 – 15 Nov).</span>
+      </section>
+
+      <section aria-label="Doctors" style="display: flex; flex-direction: column; gap: 2px;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px 6px;">
+          <span style="font-weight: 700;">Doctors</span>
+          <span style="font-size: 12px; color: #475569;">Hours vs fair share</span>
+        </div>
+        <sc-for list="{{doctors}}" as="r" hint-placeholder-count="8">
+          <div style="display: flex; align-items: flex-start; gap: 10px; padding: 6px 4px; border-radius: 6px;">
+            <input type="checkbox" id="{{r.cbId}}" checked="{{r.visible}}" onChange="{{r.toggleVis}}" style="width: 18px; height: 18px; margin: 1px 0 0; accent-color: {{r.color}}; flex-shrink: 0; cursor: pointer;">
+            <label for="{{r.cbId}}" style="flex-grow: 1; display: flex; justify-content: space-between; gap: 8px; cursor: pointer;">
+              <span style="display: flex; flex-direction: column;">
+                <span style="font-weight: 700;">{{r.name}}</span>
+                <span style="font-size: 12px; color: #475569;">{{r.detail}}</span>
+              </span>
+              <span style="display: flex; flex-direction: column; align-items: flex-end; font-variant-numeric: tabular-nums;">
+                <span style="font-weight: 700;">{{r.hours}}</span>
+                <span style="font-size: 12px; color: #475569;">{{r.delta}}</span>
+              </span>
+            </label>
+          </div>
+        </sc-for>
+        <span style="font-size: 12px; color: #475569; padding: 6px 4px 0;">Untick a doctor to hide their shifts. Fair share is 84 h at 100% FTE.</span>
+      </section>
+    </aside>
+
+    <main style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <button type="button" onClick="{{prev}}" disabled="{{prevDisabled}}" aria-label="Previous week" style="width: 40px; height: 40px; border-radius: 9999px; border: 0; background: transparent; color: {{prevColor}}; cursor: {{prevCursor}}; display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg></button>
+            <button type="button" onClick="{{next}}" disabled="{{nextDisabled}}" aria-label="Next week" style="width: 40px; height: 40px; border-radius: 9999px; border: 0; background: transparent; color: {{nextColor}}; cursor: {{nextCursor}}; display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg></button>
+          </div>
+          <div style="display: flex; flex-direction: column;">
+            <span style="font-size: 12px; color: #475569;">Urgência Geral · [HOSPITAL NAME]</span>
+            <h1 style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 400;">{{rangeText}}</h1>
+          </div>
+          <span style="padding: 2px 10px; border-radius: 9999px; background: {{statusBg}}; color: {{statusFg}}; font-size: 12px; font-weight: 700;">{{statusText}}</span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px;">
+          <div role="group" aria-label="View" style="display: flex; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden;">
+            <button type="button" onClick="{{showWeek}}" aria-pressed="{{weekPressed}}" style="height: 38px; padding: 0 14px; border: 0; background: {{weekTabBg}}; color: {{weekTabFg}}; font: inherit; font-weight: 700; cursor: pointer;">Week</button>
+            <button type="button" onClick="{{showMonth}}" aria-pressed="{{monthPressed}}" style="height: 38px; padding: 0 14px; border: 0; border-left: 1px solid #cbd5e1; background: {{monthTabBg}}; color: {{monthTabFg}}; font: inherit; font-weight: 700; cursor: pointer;">2 weeks</button>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+            <button type="button" onClick="{{publish}}" disabled="{{publishDisabled}}" style="height: 40px; padding: 0 16px; border-radius: 6px; border: 1px solid {{publishBg}}; background: {{publishBg}}; color: {{publishFg}}; font: inherit; font-weight: 700; cursor: {{publishCursor}};">{{publishLabel}}</button>
+          </div>
+        </div>
+      </div>
+      <span role="status" style="font-size: 12px; color: #475569; align-self: flex-end; margin-top: -10px;">{{publishHint}}</span>
+
+      <section aria-label="Summary of the period" style="border: 1px solid #e2e8f0; border-radius: 8px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));">
+        <div style="padding: 10px 16px; display: flex; flex-direction: column; gap: 2px;">
+          <span style="color: #475569; font-size: 12px;">Shifts filled</span>
+          <span style="font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums;">{{filledText}}</span>
+        </div>
+        <div style="padding: 10px 16px; display: flex; flex-direction: column; gap: 2px; border-left: 1px solid #e2e8f0;">
+          <span style="color: #475569; font-size: 12px;">Unfilled</span>
+          <span style="font-size: 18px; font-weight: 700; color: {{unfilledColor}}; font-variant-numeric: tabular-nums;">{{unfilledText}}</span>
+        </div>
+        <div style="padding: 10px 16px; display: flex; flex-direction: column; gap: 2px; border-left: 1px solid #e2e8f0;">
+          <span style="color: #475569; font-size: 12px;">Rule breaks</span>
+          <span style="font-size: 18px; font-weight: 700; color: {{breaksColor}}; font-variant-numeric: tabular-nums;">{{breaksText}}</span>
+        </div>
+        <div style="padding: 10px 16px; display: flex; flex-direction: column; gap: 2px; border-left: 1px solid #e2e8f0;">
+          <span style="color: #475569; font-size: 12px;">"If needed" to confirm</span>
+          <span style="font-size: 18px; font-weight: 700; color: {{confirmColor}}; font-variant-numeric: tabular-nums;">{{confirmText}}</span>
+        </div>
+      </section>
+
+      <sc-if value="{{hasViolations}}" hint-placeholder-val="{{false}}">
+        <section aria-label="Rule breaks" style="border: 1px solid #fdba74; background: #fff7ed; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-weight: 700; color: #9a3412;">Rule breaks need a reason before you can publish</div>
+          <sc-for list="{{violations}}" as="v" hint-placeholder-count="1">
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+              <label for="{{v.inputId}}" style="flex: 1 1 280px;"><strong>{{v.name}}</strong> · {{v.when}} · {{v.rule}}</label>
+              <input id="{{v.inputId}}" type="text" placeholder="Reason for override (saved to the audit log)" value="{{v.value}}" onChange="{{v.onChange}}" style="flex: 2 1 320px; height: 36px; box-sizing: border-box; padding: 0 10px; border: 1px solid #fdba74; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit;">
+            </div>
+          </sc-for>
+        </section>
+      </sc-if>
+
+      <sc-if value="{{hasToConfirm}}" hint-placeholder-val="{{false}}">
+        <section aria-label="Shifts to confirm" style="border: 1px solid #fcd34d; background: #fffbeb; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-weight: 700; color: #92400e;">Confirm "If needed" shifts with the doctor before you can publish</div>
+          <sc-for list="{{toConfirm}}" as="t" hint-placeholder-count="1">
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+              <span style="flex: 1 1 280px;"><strong>{{t.name}}</strong> · {{t.when}}</span>
+              <button type="button" onClick="{{t.confirm}}" style="height: 36px; padding: 0 12px; border-radius: 6px; border: 1px solid #0e7490; background: #0e7490; color: #ffffff; font: inherit; font-weight: 700; cursor: pointer;">Confirmed</button>
+              <button type="button" onClick="{{t.decline}}" style="height: 36px; padding: 0 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; color: #b91c1c; font: inherit; font-weight: 700; cursor: pointer;">Declined · unassign</button>
+            </div>
+          </sc-for>
+        </section>
+      </sc-if>
+
+      <section aria-label="Calendar" style="position: relative; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+        <sc-if value="{{isWeek}}" hint-placeholder-val="{{true}}">
+          <div style="overflow-x: auto;">
+            <div style="min-width: 840px;">
+              <div style="display: grid; grid-template-columns: 56px repeat(7, minmax(0, 1fr)); border-bottom: 1px solid #e2e8f0;">
+                <div></div>
+                <sc-for list="{{weekDays}}" as="wd" hint-placeholder-count="7">
+                  <div style="padding: 8px 4px; display: flex; flex-direction: column; align-items: center; gap: 2px; border-left: 1px solid #e2e8f0; background: {{wd.bg}};">
+                    <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #475569;">{{wd.label}}</span>
+                    <span style="font-size: 24px; line-height: 32px;">{{wd.num}}</span>
+                    <span style="font-size: 12px; font-weight: 700; color: {{wd.covColor}}; font-variant-numeric: tabular-nums;">{{wd.covText}}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display: grid; grid-template-columns: 56px repeat(7, minmax(0, 1fr)); height: 720px;">
+                <div style="position: relative;">
+                  <sc-for list="{{hours}}" as="h" hint-placeholder-count="23">
+                    <span style="position: absolute; top: {{h.top}}px; right: 8px; font-size: 12px; line-height: 14px; color: #475569; font-variant-numeric: tabular-nums;">{{h.label}}</span>
+                  </sc-for>
+                </div>
+                <sc-for list="{{weekDays}}" as="wd" hint-placeholder-count="7">
+                  <div style="position: relative; border-left: 1px solid #e2e8f0; background-color: {{wd.bg}}; background-image: repeating-linear-gradient(to bottom, #e2e8f0 0px, #e2e8f0 1px, transparent 1px, transparent 30px);">
+                    <sc-for list="{{wd.events}}" as="e" hint-placeholder-count="4">
+                      <sc-if value="{{e.filled}}" hint-placeholder-val="{{true}}">
+                        <button type="button" onClick="{{e.pick}}" aria-label="{{e.aria}}" style="position: absolute; top: {{e.top}}px; height: {{e.height}}px; left: {{e.left}}; width: {{e.width}}; box-sizing: border-box; padding: 4px 6px; border: 0; border-radius: 6px; background: {{e.bg}}; color: #ffffff; box-shadow: {{e.ring}}; font: inherit; font-size: 12px; line-height: 16px; text-align: left; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; gap: 2px;">
+                          <span style="font-weight: 700;">{{e.name}}</span>
+                          <span>{{e.time}}</span>
+                          <sc-if value="{{e.hasRule}}" hint-placeholder-val="{{false}}">
+                            <span style="display: flex; align-items: center; gap: 4px; padding: 0 4px; border-radius: 4px; background: #ffffff; color: #9a3412; font-weight: 700;"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Rule break</span>
+                          </sc-if>
+                          <sc-if value="{{e.toConfirm}}" hint-placeholder-val="{{false}}">
+                            <span style="display: flex; align-items: center; gap: 4px; padding: 0 4px; border-radius: 4px; background: #ffffff; color: #92400e; font-weight: 700;"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg>To confirm</span>
+                          </sc-if>
+                        </button>
+                      </sc-if>
+                      <sc-if value="{{e.prior}}" hint-placeholder-val="{{false}}">
+                        <div style="position: absolute; top: {{e.top}}px; height: {{e.height}}px; left: 2px; right: 2px; box-sizing: border-box; padding: 4px 6px; border-radius: 6px; background-color: #f1f5f9; background-image: repeating-linear-gradient(135deg, transparent 0px, transparent 6px, #e2e8f0 6px, #e2e8f0 8px); color: #475569; font-size: 12px; line-height: 16px;">{{e.label}}</div>
+                      </sc-if>
+                      <sc-if value="{{e.gap}}" hint-placeholder-val="{{false}}">
+                        <a href="ShiftDetail.dc.html" aria-label="{{e.aria}}" style="position: absolute; top: {{e.top}}px; height: {{e.height}}px; left: {{e.left}}; width: {{e.width}}; box-sizing: border-box; padding: 4px 6px; border: 2px dashed #dc2626; border-radius: 6px; background: #fef2f2; color: #b91c1c; font-size: 12px; line-height: 16px; text-decoration: none; overflow: hidden; display: flex; flex-direction: column; gap: 2px;">
+                          <span style="font-weight: 700;">Unfilled</span>
+                          <span>{{e.label}}</span>
+                        </a>
+                      </sc-if>
+                    </sc-for>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{isMonth}}" hint-placeholder-val="{{false}}">
+          <div style="overflow-x: auto;">
+            <div style="min-width: 840px;">
+              <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-bottom: 1px solid #e2e8f0;">
+                <sc-for list="{{weekdayLabels}}" as="l" hint-placeholder-count="7">
+                  <span style="padding: 8px 0; text-align: center; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #475569;">{{l}}</span>
+                </sc-for>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));">
+                <sc-for list="{{monthCells}}" as="c" hint-placeholder-count="14">
+                  <div style="min-height: 176px; min-width: 0; box-sizing: border-box; padding: 6px; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; background: {{c.bg}}; display: flex; flex-direction: column; gap: 3px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; padding-bottom: 2px;">
+                      <span style="font-size: 13px; font-weight: 700;">{{c.num}}</span>
+                      <sc-if value="{{c.hasOver}}" hint-placeholder-val="{{false}}">
+                        <span style="padding: 0 6px; border-radius: 4px; background: #fef3c7; color: #92400e; font-size: 12px; font-weight: 700;">{{c.overText}}</span>
+                      </sc-if>
+                    </div>
+                    <sc-for list="{{c.chips}}" as="ch" hint-placeholder-count="4">
+                      <sc-if value="{{ch.filled}}" hint-placeholder-val="{{true}}">
+                        <button type="button" onClick="{{ch.pick}}" aria-label="{{ch.aria}}" style="width: 100%; min-width: 0; height: 24px; padding: 0 6px; border: 0; border-radius: 4px; background: {{ch.bg}}; color: #ffffff; box-shadow: {{ch.ring}}; font: inherit; font-size: 12px; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 4px; overflow: hidden; white-space: nowrap;">
+                          <sc-if value="{{ch.isDay}}" hint-placeholder-val="{{true}}"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg></sc-if>
+                          <sc-if value="{{ch.isNight}}" hint-placeholder-val="{{false}}"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></sc-if>
+                          <span style="font-variant-numeric: tabular-nums;">{{ch.time}}</span>
+                          <span style="font-weight: 700; overflow: hidden; text-overflow: ellipsis; flex-grow: 1;">{{ch.name}}</span>
+                          <sc-if value="{{ch.hasRule}}" hint-placeholder-val="{{false}}"><span style="flex-shrink: 0; width: 16px; height: 16px; border-radius: 4px; background: #ffffff; color: #9a3412; display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></span></sc-if>
+                          <sc-if value="{{ch.toConfirm}}" hint-placeholder-val="{{false}}"><span style="flex-shrink: 0; width: 16px; height: 16px; border-radius: 4px; background: #ffffff; color: #92400e; display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg></span></sc-if>
+                        </button>
+                      </sc-if>
+                      <sc-if value="{{ch.gap}}" hint-placeholder-val="{{false}}">
+                        <a href="ShiftDetail.dc.html" aria-label="{{ch.aria}}" style="height: 24px; box-sizing: border-box; padding: 0 6px; border: 2px dashed #dc2626; border-radius: 4px; background: #fef2f2; color: #b91c1c; font-size: 12px; font-weight: 700; text-decoration: none; display: flex; align-items: center; overflow: hidden; white-space: nowrap;">{{ch.label}}</a>
+                      </sc-if>
+                    </sc-for>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{hasSel}}" hint-placeholder-val="{{false}}">
+          <div role="dialog" aria-label="Shift details" onKeyDown="{{dialogKey}}" style="position: absolute; top: 56px; right: 16px; width: 320px; max-width: calc(100% - 32px); box-sizing: border-box; background: #ffffff; border-radius: 8px; box-shadow: 0 0 0 1px #e2e8f0, 0 12px 32px rgba(15,23,42,0.2); padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 12px; z-index: 10;">
+            <div style="display: flex; justify-content: flex-end;">
+              <button type="button" onClick="{{closeSel}}" aria-label="Close" style="width: 36px; height: 36px; border: 0; border-radius: 9999px; background: transparent; color: #475569; cursor: pointer; display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: flex-start;">
+              <span style="width: 14px; height: 14px; border-radius: 4px; background: {{sel.color}}; margin-top: 5px; flex-shrink: 0;"></span>
+              <div style="display: flex; flex-direction: column; gap: 2px;">
+                <span style="font-size: 18px; line-height: 24px; font-weight: 700;">{{sel.name}}</span>
+                <span>{{sel.when}}</span>
+                <span style="color: #475569;">{{sel.time}}</span>
+              </div>
+            </div>
+            <sc-if value="{{sel.hasRule}}" hint-placeholder-val="{{false}}">
+              <div style="border: 1px solid #fdba74; background: #fff7ed; color: #9a3412; border-radius: 6px; padding: 8px 10px; font-size: 13px;"><strong>Breaks a rule:</strong> {{sel.rule}}. Add a reason above before publishing.</div>
+            </sc-if>
+            <sc-if value="{{sel.toConfirm}}" hint-placeholder-val="{{false}}">
+              <div style="border: 1px solid #fcd34d; background: #fffbeb; color: #92400e; border-radius: 6px; padding: 8px 10px; font-size: 13px;"><strong>Marked "If needed".</strong> Confirm with the doctor before publishing.</div>
+            </sc-if>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <button type="button" onClick="{{sel.swap}}" style="height: 40px; padding: 0 14px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; color: #0f172a; font: inherit; font-weight: 700; cursor: pointer;">{{sel.swapLabel}}</button>
+              <button type="button" onClick="{{sel.unassign}}" style="height: 40px; padding: 0 14px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; color: #b91c1c; font: inherit; font-weight: 700; cursor: pointer;">Unassign</button>
+            </div>
+          </div>
+        </sc-if>
+      </section>
+
+      <p style="margin: 0; color: #475569; font-size: 12px;">Day 08:00–20:00, night 20:00–08:00 (a night shows on both days it covers). Click a shift to change or unassign it; click an unfilled slot to see why it's empty. Rules checked here: 12 h rest after a night, and 48 h rest after a run of nights.</p>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1140}}'>
+class Component extends DCLogic {
+  initialCodes() {
+    const pattern = 'DDNN----';
+    const codes = [];
+    for (let m = 0; m < 8; m++) {
+      const row = [];
+      for (let d = 0; d < 14; d++) {
+        let c = pattern[((d - m) % 8 + 8) % 8];
+        if (m === 7 && d === 2) c = '-';
+        if (m === 4 && d === 12) c = '-';
+        row.push(c);
+      }
+      codes.push(row);
+    }
+    return codes;
+  }
+
+  renderVals() {
+    const s = this.state || {};
+    const codes = s.codes || this.initialCodes();
+    const reasons = s.reasons || {};
+    const published = !!s.published;
+    const view = s.view || 'week';
+    const week = s.week || 0;
+    const hidden = s.hidden || {};
+    const sel = s.sel || null;
+    const confirmed = s.confirmed || {};
+    const declined = s.declined || {};
+    const names = ['Ana Costa', 'João Silva', 'Marta Rocha', 'Rui Almeida', 'Inês Ferreira', 'Pedro Santos', 'Sofia Martins', 'Tiago Lopes'];
+    const palette = ['#1d4ed8', '#047857', '#7c3aed', '#b45309', '#be185d', '#0f766e', '#44403c', '#4d7c0f'];
+    // Shifts the doctor marked "If needed" (doctor-day+shift); every other assigned shift was marked Available.
+    const ifNeededMarks = { '1-1D': true, '3-5N': true, '6-9N': true };
+    const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const days = [];
+    for (let d = 0; d < 14; d++) {
+      const weekend = d % 7 >= 5;
+      days.push({ label: labels[d % 7], num: d + 2, weekend: weekend, bg: weekend ? '#f8fafc' : '#ffffff' });
+    }
+
+    const viol = {};
+    codes.forEach((row, m) => {
+      for (let d = 0; d < 14; d++) {
+        if (row[d] !== 'N') continue;
+        if (d + 1 < 14 && row[d + 1] === 'D') viol[m + '-' + (d + 1)] = '12 h rest after a night';
+        if (d + 1 < 14 && row[d + 1] === 'N') continue;
+        for (let k = d + 1; k <= d + 2 && k < 14; k++) {
+          if (row[k] !== '-' && !viol[m + '-' + k]) viol[m + '-' + k] = '48 h rest after nights';
+        }
+      }
+    });
+
+    const words = { 'D': 'Day shift', 'N': 'Night shift', '-': 'Off' };
+    const short = { 'D': 'Day', 'N': 'Night' };
+    const shiftTime = { 'D': '08:00 – 20:00', 'N': '20:00 – 08:00' };
+    const target = 84;
+    const HOUR = 30;
+    const dateText = (d) => days[d].label + ' ' + days[d].num + ' Nov';
+    const onShift = (d, code) => {
+      const out = [];
+      codes.forEach((r, m) => { if (r[d] === code) out.push(m); });
+      return out;
+    };
+    const ring = (m, d) => {
+      const picked = sel && sel.m === m && sel.d === d;
+      if (viol[m + '-' + d]) return picked ? '0 0 0 2px #ffffff, 0 0 0 4px #ea580c, 0 6px 14px rgba(15,23,42,0.3)' : '0 0 0 2px #ffffff, 0 0 0 4px #ea580c';
+      return picked ? '0 0 0 2px #ffffff, 0 0 0 4px #0f172a' : 'none';
+    };
+    const markKey = (m, d) => m + '-' + d + codes[m][d];
+    const isIfNeeded = (m, d) => codes[m][d] !== '-' && !!ifNeededMarks[markKey(m, d)] && !declined[markKey(m, d)];
+    const needsConfirm = (m, d) => isIfNeeded(m, d) && !confirmed[markKey(m, d)];
+    const pick = (m, d) => () => this.setState({ sel: { m: m, d: d } });
+    const eventAria = (m, d, code) => names[m] + ', ' + dateText(d) + ', ' + words[code].toLowerCase() + ' ' + shiftTime[code] + (viol[m + '-' + d] ? ', breaks a rule' : '') + (needsConfirm(m, d) ? ', if needed, to confirm' : '') + '. Open details.';
+    const gapAria = (d, code, n) => 'Unfilled ' + words[code].toLowerCase() + ', ' + dateText(d) + ', ' + n + ' of 2 assigned. See why.';
+    const setCode = (m, d, c) => {
+      const copy = codes.map((r) => r.slice());
+      copy[m][d] = c;
+      this.setState({ codes: copy, published: false, sel: c === '-' ? null : { m: m, d: d } });
+    };
+
+    // Week view: one block per doctor, side by side like overlapping events; a night also shows 00–08 on the next day.
+    const segment = (src, code, start, end, timeLabel) => {
+      const all = onShift(src, code);
+      const visible = all.filter((m) => !hidden[m]);
+      const gaps = Math.max(0, 2 - all.length);
+      const lanes = Math.max(1, visible.length + gaps);
+      const pos = (i) => ({
+        top: start * HOUR + 1,
+        height: (end - start) * HOUR - 2,
+        left: 'calc(' + (i * 100 / lanes) + '% + 2px)',
+        width: 'calc(' + (100 / lanes) + '% - 4px)'
+      });
+      const out = visible.map((m, i) => Object.assign(pos(i), {
+        filled: true, gap: false, name: names[m], time: timeLabel, label: '',
+        bg: palette[m], ring: ring(m, src), hasRule: !!viol[m + '-' + src], toConfirm: needsConfirm(m, src),
+        aria: eventAria(m, src, code), pick: pick(m, src)
+      }));
+      for (let g = 0; g < gaps; g++) {
+        out.push(Object.assign(pos(visible.length + g), {
+          filled: false, gap: true, name: '', time: timeLabel, label: short[code] + ' · ' + all.length + '/2',
+          bg: '', ring: 'none', hasRule: false, toConfirm: false, aria: gapAria(src, code, all.length), pick: null
+        }));
+      }
+      return out;
+    };
+
+    const coverText = (d) => {
+      const dc = onShift(d, 'D').length;
+      const nc = onShift(d, 'N').length;
+      return {
+        text: 'Day ' + dc + '/2 · Night ' + nc + '/2',
+        color: dc < 2 || nc < 2 ? '#b91c1c' : (dc > 2 || nc > 2 ? '#92400e' : '#475569'),
+        over: [dc > 2 ? 'Day ' + dc + '/2' : '', nc > 2 ? 'Night ' + nc + '/2' : ''].filter((x) => x).join(' · ')
+      };
+    };
+
+    const weekDays = [];
+    for (let i = 0; i < 7; i++) {
+      const d = week * 7 + i;
+      let events = segment(d, 'D', 8, 20, shiftTime.D).concat(segment(d, 'N', 20, 24, shiftTime.N));
+      if (d > 0) events = events.concat(segment(d - 1, 'N', 0, 8, 'Night until 08:00'));
+      else events.push({ prior: true, filled: false, gap: false, top: 1, height: 8 * HOUR - 2, label: 'Night of 1 Nov · previous period' });
+      const cov = coverText(d);
+      weekDays.push({ label: days[d].label, num: days[d].num, bg: days[d].bg, events: events, covText: cov.text, covColor: cov.color });
+    }
+    const hours = [];
+    for (let h = 1; h < 24; h++) hours.push({ top: h * HOUR - 7, label: (h < 10 ? '0' : '') + h + ':00' });
+
+    const monthCells = days.map((day, d) => {
+      const chips = [];
+      ['D', 'N'].forEach((code) => {
+        const all = onShift(d, code);
+        all.filter((m) => !hidden[m]).forEach((m) => chips.push({
+          filled: true, gap: false, isDay: code === 'D', isNight: code === 'N',
+          time: code === 'D' ? '08' : '20', name: names[m], bg: palette[m], ring: ring(m, d), hasRule: !!viol[m + '-' + d], toConfirm: needsConfirm(m, d),
+          aria: eventAria(m, d, code), pick: pick(m, d), label: ''
+        }));
+        if (all.length < 2) chips.push({
+          filled: false, gap: true, isDay: false, isNight: false, time: '', name: '', bg: '', ring: 'none', hasRule: false, toConfirm: false,
+          aria: gapAria(d, code, all.length), pick: null, label: short[code] + ' unfilled · ' + all.length + '/2'
+        });
+      });
+      const cov = coverText(d);
+      return { num: day.num, bg: day.bg, chips: chips, hasOver: !!cov.over, overText: cov.over };
+    });
+
+    const mini = [];
+    for (let i = 0; i < 42; i++) {
+      let num;
+      let inMonth = false;
+      if (i < 6) num = 26 + i;
+      else if (i < 36) { num = i - 5; inMonth = true; }
+      else num = i - 35;
+      const d = inMonth ? num - 2 : -1;
+      const inPeriod = d >= 0 && d < 14;
+      const inView = inPeriod && (view === 'month' || Math.floor(d / 7) === week);
+      mini.push({
+        num: num, isBtn: inPeriod, isText: !inPeriod,
+        color: inMonth ? '#334155' : '#64748b',
+        bg: inView ? '#cffafe' : 'transparent', fg: inView ? '#155e75' : '#0f172a',
+        aria: inPeriod ? 'Show week of ' + dateText(d) : '',
+        go: inPeriod ? () => this.setState({ view: 'week', week: Math.floor(d / 7), sel: null }) : null
+      });
+    }
+
+    const doctors = codes.map((row, m) => {
+      let total = 0, nights = 0, weekends = 0, ifNeeded = 0;
+      row.forEach((c, d) => {
+        if (c !== '-') { total += 12; if (days[d].weekend) weekends += 1; }
+        if (c === 'N') nights += 1;
+        if (isIfNeeded(m, d)) ifNeeded += 1;
+      });
+      const diff = total - target;
+      return {
+        name: names[m], color: palette[m], cbId: 'show-' + m, visible: !hidden[m],
+        toggleVis: () => {
+          const h = Object.assign({}, hidden);
+          if (h[m]) delete h[m]; else h[m] = true;
+          this.setState({ hidden: h });
+        },
+        hours: total + ' h',
+        delta: diff === 0 ? 'on target' : (diff > 0 ? '+' : '−') + Math.abs(diff) + ' h',
+        detail: nights + ' nights · ' + weekends + ' wknd · if needed ' + ifNeeded
+      };
+    });
+
+    let filled = 0;
+    days.forEach((day, d) => {
+      filled += Math.min(onShift(d, 'D').length, 2) + Math.min(onShift(d, 'N').length, 2);
+    });
+    const unfilled = 56 - filled;
+
+    const violations = Object.keys(viol).map((key) => {
+      const parts = key.split('-');
+      const m = Number(parts[0]);
+      const d = Number(parts[1]);
+      return {
+        key: key,
+        inputId: 'reason-' + key,
+        name: names[m],
+        when: dateText(d) + ', ' + words[codes[m][d]].toLowerCase(),
+        rule: viol[key],
+        value: reasons[key] || '',
+        onChange: (e) => {
+          const copy = Object.assign({}, reasons);
+          copy[key] = e.target.value;
+          this.setState({ reasons: copy, published: false });
+        }
+      };
+    });
+    const missing = violations.filter((v) => !v.value.trim()).length;
+
+    const toConfirm = [];
+    codes.forEach((row, m) => {
+      row.forEach((c, d) => {
+        if (!needsConfirm(m, d)) return;
+        const key = markKey(m, d);
+        toConfirm.push({
+          name: names[m],
+          when: dateText(d) + ', ' + words[c].toLowerCase(),
+          confirm: () => this.setState({ confirmed: Object.assign({}, confirmed, { [key]: true }), published: false }),
+          // Declining clears the doctor's mark on their behalf (D8) and unassigns the shift.
+          decline: () => {
+            const copy = codes.map((r) => r.slice());
+            copy[m][d] = '-';
+            this.setState({ codes: copy, declined: Object.assign({}, declined, { [key]: true }), published: false, sel: null });
+          }
+        });
+      });
+    });
+    const publishDisabled = published || missing > 0 || toConfirm.length > 0;
+
+    let publishHint = 'Members get an email when you publish.';
+    if (published) publishHint = 'Published. Members were notified.';
+    else if (missing > 0 || toConfirm.length > 0) {
+      const todo = [];
+      if (missing > 0) todo.push('add a reason for ' + missing + (missing === 1 ? ' rule break' : ' rule breaks'));
+      if (toConfirm.length > 0) todo.push('confirm ' + toConfirm.length + ' "If needed" ' + (toConfirm.length === 1 ? 'shift' : 'shifts'));
+      publishHint = 'To publish, ' + todo.join(' and ') + '.';
+    }
+
+    const hasSel = !!(sel && codes[sel.m] && codes[sel.m][sel.d] !== '-');
+    let selInfo = { name: '', when: '', time: '', color: '#ffffff', hasRule: false, rule: '', toConfirm: false, swapLabel: '', swap: null, unassign: null };
+    if (hasSel) {
+      const m = sel.m, d = sel.d, c = codes[m][d];
+      selInfo = {
+        name: names[m],
+        when: dateText(d) + ' · ' + words[c],
+        time: shiftTime[c],
+        color: palette[m],
+        hasRule: !!viol[m + '-' + d],
+        rule: viol[m + '-' + d] || '',
+        toConfirm: needsConfirm(m, d),
+        swapLabel: c === 'D' ? 'Change to night' : 'Change to day',
+        swap: () => setCode(m, d, c === 'D' ? 'N' : 'D'),
+        unassign: () => setCode(m, d, '-')
+      };
+    }
+
+    const isWeek = view === 'week';
+    const prevDisabled = !isWeek || week === 0;
+    const nextDisabled = !isWeek || week === 1;
+
+    return {
+      mini: mini,
+      doctors: doctors,
+      weekDays: weekDays,
+      hours: hours,
+      weekdayLabels: labels,
+      monthCells: monthCells,
+      isWeek: isWeek,
+      isMonth: !isWeek,
+      weekPressed: String(isWeek),
+      monthPressed: String(!isWeek),
+      weekTabBg: isWeek ? '#ecfeff' : '#ffffff',
+      weekTabFg: isWeek ? '#155e75' : '#334155',
+      monthTabBg: isWeek ? '#ffffff' : '#ecfeff',
+      monthTabFg: isWeek ? '#334155' : '#155e75',
+      showWeek: () => this.setState({ view: 'week', sel: null }),
+      showMonth: () => this.setState({ view: 'month', sel: null }),
+      rangeText: isWeek ? (week === 0 ? '2 – 8 November 2026' : '9 – 15 November 2026') : '2 – 15 November 2026',
+      prevDisabled: prevDisabled,
+      nextDisabled: nextDisabled,
+      prevColor: prevDisabled ? '#cbd5e1' : '#334155',
+      nextColor: nextDisabled ? '#cbd5e1' : '#334155',
+      prevCursor: prevDisabled ? 'not-allowed' : 'pointer',
+      nextCursor: nextDisabled ? 'not-allowed' : 'pointer',
+      dialogKey: (e) => { if (e.key === 'Escape') this.setState({ sel: null }); },
+      prev: () => this.setState({ week: 0, sel: null }),
+      next: () => this.setState({ week: 1, sel: null }),
+      hasSel: hasSel,
+      sel: selInfo,
+      closeSel: () => this.setState({ sel: null }),
+      violations: violations,
+      hasViolations: violations.length > 0,
+      filledText: filled + ' / 56',
+      unfilledText: unfilled === 0 ? 'None' : unfilled + (unfilled === 1 ? ' shift' : ' shifts'),
+      unfilledColor: unfilled === 0 ? '#15803d' : '#b91c1c',
+      breaksText: violations.length === 0 ? 'None' : String(violations.length),
+      breaksColor: violations.length === 0 ? '#15803d' : '#c2410c',
+      toConfirm: toConfirm,
+      hasToConfirm: toConfirm.length > 0,
+      confirmText: toConfirm.length === 0 ? 'None' : String(toConfirm.length),
+      confirmColor: toConfirm.length === 0 ? '#15803d' : '#92400e',
+      statusText: published ? 'Published' : 'Closed · reviewing draft',
+      statusBg: published ? '#dcfce7' : '#fef3c7',
+      statusFg: published ? '#166534' : '#92400e',
+      publishLabel: published ? 'Published' : 'Publish schedule',
+      publishDisabled: publishDisabled,
+      publishBg: publishDisabled ? '#e2e8f0' : '#0e7490',
+      publishFg: publishDisabled ? '#475569' : '#ffffff',
+      publishCursor: publishDisabled ? 'not-allowed' : 'pointer',
+      publishHint: publishHint,
+      publish: () => { if (!publishDisabled) this.setState({ published: true }); },
+      regenerate: () => this.setState({ codes: this.initialCodes(), reasons: {}, confirmed: {}, declined: {}, published: false, sel: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+<title>Smart Scheduler Data Model</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: single reading column, diagram in a full-width scroll container, computed-values key below */
+  :root {
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --ink: #1b2330;
+    --muted: #5b6676;
+    --line: #dbe0e7;
+    --accent: #0f6e78;
+    --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12161c; --surface: #1a2028; --ink: #e6eaf0; --muted: #9aa5b4; --line: #2c3540; --accent: #5cc3cc;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12161c; --surface: #1a2028; --ink: #e6eaf0; --muted: #9aa5b4; --line: #2c3540; --accent: #5cc3cc;
+    color-scheme: dark;
+  }
+  body {
+    background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.55;
+    padding-block: 32px 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; display: grid; gap: 28px; }
+  header { display: grid; gap: 6px; max-width: 70ch; }
+  .eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0; }
+  h1 { font-size: 28px; font-weight: 600; margin: 0; text-wrap: balance; }
+  h2 { font-size: 17px; font-weight: 600; margin: 0; }
+  p { margin: 0; color: var(--muted); }
+  .diagram { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 20px; overflow-x: auto; }
+  .diagram pre.mermaid { margin: 0; min-width: 760px; }
+  .computed { display: grid; gap: 12px; }
+  .computed ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px 28px; }
+  .computed li { color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); padding-top: 8px; }
+  .computed li strong { color: var(--ink); font-weight: 500; display: block; }
+  code { font-family: var(--font-mono); font-size: 13px; color: var(--ink); }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">MVP · data model v2 · 10 tables · login via Auth0</p>
+    <h1>Smart Scheduler Data Model</h1>
+    <p>The tables store only what people enter. Shift times, flags, rule violations, owed rest and fairness are computed when needed. Scroll sideways on narrow screens.</p>
+  </header>
+
+  <div class="diagram">
+<pre class="mermaid">
+erDiagram
+    COMPANY ||--o{ USER_ACCOUNT : employs
+    COMPANY ||--o{ TEAM : owns
+    USER_ACCOUNT ||--o{ TEAM_MEMBER : is
+    TEAM ||--o{ TEAM_MEMBER : has
+    TEAM ||--o{ SHIFT_TEMPLATE : defines
+    TEAM ||--o{ SCHEDULE_PERIOD : plans
+    SCHEDULE_PERIOD ||--o{ SHIFT_SLOT : contains
+    SHIFT_TEMPLATE ||--o{ SHIFT_SLOT : "times for"
+    SHIFT_SLOT ||--o{ AVAILABILITY : receives
+    TEAM_MEMBER ||--o{ AVAILABILITY : states
+    SHIFT_SLOT ||--o{ ASSIGNMENT : "filled by"
+    TEAM_MEMBER ||--o{ ASSIGNMENT : works
+    COMPANY ||--o{ AUDIT_EVENT : logs
+
+    COMPANY {
+        uuid id PK
+        text name
+    }
+    USER_ACCOUNT {
+        uuid id PK
+        uuid company_id FK
+        citext email UK
+        text auth_subject UK "Auth0 sub"
+        text display_name
+        boolean is_company_admin
+    }
+    TEAM {
+        uuid id PK
+        uuid company_id FK
+        text name
+        text timezone
+        text municipal_holiday "MM-DD"
+        int min_rest_between_shifts_min
+        int max_consecutive_work_min
+        int max_avg_weekly_work_min
+        smallint avg_reference_weeks
+        int min_weekly_rest_min
+        smallint max_consecutive_nights
+        int rest_after_night_run_min
+    }
+    TEAM_MEMBER {
+        uuid id PK
+        uuid team_id FK
+        uuid user_id FK
+        enum role "MANAGER or MEMBER"
+        boolean works_shifts
+        smallint fte_percent
+        boolean active
+    }
+    SHIFT_TEMPLATE {
+        uuid id PK
+        uuid team_id FK
+        text name
+        time start_time
+        time end_time
+        boolean is_night
+        smallint default_min_staff
+        smallint default_max_staff
+    }
+    SCHEDULE_PERIOD {
+        uuid id PK
+        uuid team_id FK
+        date start_date
+        date end_date
+        enum status "DRAFT, OPEN, CLOSED, PUBLISHED"
+        timestamptz input_deadline
+        int version
+    }
+    SHIFT_SLOT {
+        uuid id PK
+        uuid period_id FK
+        uuid template_id FK
+        date date
+        smallint min_staff
+        smallint max_staff
+    }
+    AVAILABILITY {
+        uuid slot_id PK
+        uuid team_member_id PK
+        enum kind "AVAILABLE, IF_NEEDED"
+        uuid entered_by FK
+    }
+    ASSIGNMENT {
+        uuid slot_id PK
+        uuid team_member_id PK
+        enum source "ENGINE or MANUAL"
+        text override_comment
+        timestamptz confirmed_at
+        timestamptz actual_start_at
+        timestamptz actual_end_at
+    }
+    AUDIT_EVENT {
+        bigserial id PK
+        uuid company_id FK
+        uuid actor_user_id FK
+        text entity_type
+        text action
+        jsonb payload
+    }
+</pre>
+  </div>
+
+  <section class="computed" aria-labelledby="computed-title">
+    <h2 id="computed-title">Computed when needed</h2>
+    <ul>
+      <li><strong>Shift start, end and length</strong>Slot date + template times + team timezone, so daylight-saving nights are correct</li>
+      <li><strong>Night, weekend, holiday</strong>Template flag, weekday, and Portuguese holidays calculated in code (including Easter-based ones)</li>
+      <li><strong>Rule violations and unfilled-shift reasons</strong>The rule validator, run on demand</li>
+      <li><strong>Owed compensatory rest</strong>Actual times that cut into minimum rest block the interval right after the work</li>
+      <li><strong>Fairness stats and carry-over</strong>Assignments and availability from the last 3 periods</li>
+      <li><strong>Fair-share target</strong>Share of total required minutes, in proportion to each member's <code>fte_percent</code></li>
+    </ul>
+  </section>
+</div>
