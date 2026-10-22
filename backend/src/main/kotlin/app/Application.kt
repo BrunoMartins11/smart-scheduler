@@ -1,46 +1,40 @@
 package app
 
+import app.controller.team.teamRoutes
+import app.controller.auth.OAUTH_STATE_COOKIE
+import app.controller.auth.UserSession
+import app.controller.auth.authRoutes
+import app.controller.user.meRoutes
+import app.persistence.connectDatabase
+import app.persistence.migrate
+import app.persistence.team.TeamRepository
+import app.persistence.user.UserRepository
+import app.service.team.TeamService
+import app.service.auth.AuthService
+import app.service.user.UserService
 import com.auth0.jwk.JwkProviderBuilder
-import com.auth0.jwt.exceptions.JWTVerificationException
 import io.ktor.client.HttpClient
-import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
-import io.ktor.server.auth.OAuthAccessTokenResponse
 import io.ktor.server.auth.OAuthServerSettings
-import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.oauth
-import io.ktor.server.auth.principal
 import io.ktor.server.netty.EngineMain
 import io.ktor.server.response.respond
-import io.ktor.server.response.respondRedirect
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
-import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.server.sessions.SameSite
 import io.ktor.server.sessions.SessionTransportTransformerEncrypt
 import io.ktor.server.sessions.Sessions
-import io.ktor.server.sessions.clear
 import io.ktor.server.sessions.cookie
-import io.ktor.server.sessions.set
-import io.ktor.server.sessions.sessions
 import io.ktor.util.hex
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonArray
 import java.net.URI
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 
 fun main(args: Array<String>) = EngineMain.main(args)
-
-const val OAUTH_STATE_COOKIE = "oauth_state"
 
 fun Application.module() {
     val db = connectDatabase(environment.config)
@@ -56,6 +50,10 @@ fun Application.module() {
     val jwks = JwkProviderBuilder(URI("${issuer}.well-known/jwks.json").toURL()).build()
     val encryptKey = hex(environment.config.property("session.encryptKey").getString())
     val signKey = hex(environment.config.property("session.signKey").getString())
+
+    val users = UserService(UserRepository(db))
+    val auth = AuthService(users)
+    val teams = TeamService(TeamRepository(db))
 
     install(Sessions) {
         cookie<UserSession>("sid") {
@@ -106,63 +104,8 @@ fun Application.module() {
         get("/health") {
             call.respondText("ok")
         }
-
-        authenticate("auth0") {
-            // With no login yet, the OAuth plugin redirects to Auth0 before this body runs.
-            get("/auth/login") {}
-
-            get("/auth/callback") {
-                call.response.cookies.append(
-                    name = OAUTH_STATE_COOKIE, value = "", path = "/auth", maxAge = 0,
-                    secure = secure, httpOnly = true, extensions = mapOf("SameSite" to "Lax"),
-                )
-                if (!stateMatches(call.request.cookies[OAUTH_STATE_COOKIE], call.parameters["state"])) {
-                    call.application.environment.log.warn("OAuth callback rejected: state cookie missing or mismatched (cookie present=${call.request.cookies[OAUTH_STATE_COOKIE] != null})")
-                    return@get call.respond(HttpStatusCode.Unauthorized)
-                }
-                val token = call.principal<OAuthAccessTokenResponse.OAuth2>() ?: run {
-                    call.application.environment.log.warn("OAuth callback rejected: no OAuth2 principal")
-                    return@get call.respond(HttpStatusCode.Unauthorized)
-                }
-                val idToken = token.extraParameters["id_token"] ?: run {
-                    call.application.environment.log.warn("OAuth callback rejected: token response has no id_token")
-                    return@get call.respond(HttpStatusCode.Unauthorized)
-                }
-                val claims = try {
-                    verifyIdToken(idToken, jwks, issuer, clientId)
-                } catch (e: JWTVerificationException) {
-                    call.application.environment.log.warn("OAuth callback rejected: ID token invalid: ${e.message}")
-                    return@get call.respond(HttpStatusCode.Unauthorized)
-                }
-                val verified = claims.getClaim("email_verified").asBoolean() == true
-                when (val login = resolveLogin(db, claims.subject, claims.getClaim("email").asString(), verified)) {
-                    is Login.Ok -> {
-                        call.sessions.set(UserSession(login.userId.toString()))
-                        call.respondRedirect(publicUrl)
-                    }
-                    Login.NoInvite -> call.respondText("Peça um convite ao seu gestor.", status = HttpStatusCode.Forbidden)
-                    Login.Deactivated -> call.respondText("Conta desativada.", status = HttpStatusCode.Forbidden)
-                }
-            }
-        }
-
-        post("/auth/logout") {
-            call.sessions.clear<UserSession>()
-            val returnTo = URLEncoder.encode(publicUrl, StandardCharsets.UTF_8)
-            call.respondRedirect("https://$domain/v2/logout?client_id=$clientId&returnTo=$returnTo")
-        }
-
-        get("/api/me") {
-            val user = call.currentUser(db) ?: return@get
-            val body = buildJsonObject {
-                put("id", user.id.toString())
-                put("email", user.email)
-                put("displayName", user.displayName)
-                put("companyId", user.companyId.toString())
-                put("isCompanyAdmin", user.isCompanyAdmin)
-                putJsonArray("managedTeamIds") { user.managedTeamIds.forEach { add(JsonPrimitive(it.toString())) } }
-            }
-            call.respondText(body.toString(), ContentType.Application.Json)
-        }
+        authRoutes(auth, publicUrl, domain, clientId, secure, jwks, issuer)
+        meRoutes(users)
+        teamRoutes(users, teams)
     }
 }

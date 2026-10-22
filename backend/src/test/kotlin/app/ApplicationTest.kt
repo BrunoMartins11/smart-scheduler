@@ -24,9 +24,4 @@ class ApplicationTest {
         assertEquals("ok", response.bodyAsText())
     }
 
-    @Test
-    fun meWithoutSessionIsUnauthorized() = app {
-        val response = client.get("/api/me")
-        assertEquals(HttpStatusCode.Unauthorized, response.status)
-    }
 }

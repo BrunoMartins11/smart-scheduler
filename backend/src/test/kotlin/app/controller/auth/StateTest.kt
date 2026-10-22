@@ -1,4 +1,4 @@
-package app
+package app.controller.auth
 
 import kotlin.test.Test
 import kotlin.test.assertFalse

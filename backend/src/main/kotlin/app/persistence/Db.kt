@@ -1,4 +1,4 @@
-package app
+package app.persistence
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
