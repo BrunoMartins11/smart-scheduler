@@ -1,6 +1,7 @@
 package app.controller.team
 
 import app.controller.currentUser
+import app.model.TeamRules
 import app.service.auth.AuthService
 import app.service.team.InviteResult
 import app.service.team.MemberResult
@@ -16,6 +17,7 @@ import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
+import io.ktor.server.routing.put
 import java.util.UUID
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
@@ -35,6 +37,9 @@ data class InviteRequest(
 
 @Serializable
 data class CreateTeamRequest(val name: String)
+
+@Serializable
+data class CopyRulesRequest(val fromTeamId: String)
 
 @Serializable
 data class UpdateMemberRequest(
@@ -115,6 +120,47 @@ fun Route.teamRoutes(auth: AuthService, teams: TeamService) {
         val id = teams.createTeam(user, body.name) ?: return@post call.respond(HttpStatusCode.NotFound)
         val json = buildJsonObject { put("id", id.toString()) }
         call.respondText(json.toString(), ContentType.Application.Json, HttpStatusCode.Created)
+    }
+
+    get("/api/teams/{teamId}/rules") {
+        val user = call.currentUser(auth) ?: return@get
+        val teamId = call.uuidParam("teamId") ?: return@get call.respond(HttpStatusCode.NotFound)
+        val rules = teams.getRules(user, teamId) ?: return@get call.respond(HttpStatusCode.NotFound)
+        // Explicit build: Json omits null-default properties, but the API must send every field.
+        val json = buildJsonObject {
+            put("minRestBetweenShiftsMin", rules.minRestBetweenShiftsMin)
+            put("maxConsecutiveWorkMin", rules.maxConsecutiveWorkMin)
+            put("maxAvgWeeklyWorkMin", rules.maxAvgWeeklyWorkMin)
+            put("avgReferenceWeeks", rules.avgReferenceWeeks)
+            put("minWeeklyRestMin", rules.minWeeklyRestMin)
+            put("maxConsecutiveNights", rules.maxConsecutiveNights)
+            put("restAfterNightRunMin", rules.restAfterNightRunMin)
+        }
+        call.respondText(json.toString(), ContentType.Application.Json)
+    }
+
+    put("/api/teams/{teamId}/rules") {
+        val user = call.currentUser(auth) ?: return@put
+        val teamId = call.uuidParam("teamId") ?: return@put call.respond(HttpStatusCode.NotFound)
+        val body = try {
+            Json.decodeFromString<TeamRules>(call.receiveText())
+        } catch (e: SerializationException) {
+            return@put call.respond(HttpStatusCode.BadRequest)
+        }
+        call.respondMember(teams.setRules(user, teamId, body))
+    }
+
+    post("/api/teams/{teamId}/rules/copy") {
+        val user = call.currentUser(auth) ?: return@post
+        val teamId = call.uuidParam("teamId") ?: return@post call.respond(HttpStatusCode.NotFound)
+        val body = try {
+            Json.decodeFromString<CopyRulesRequest>(call.receiveText())
+        } catch (e: SerializationException) {
+            return@post call.respond(HttpStatusCode.BadRequest)
+        }
+        val fromTeamId = runCatching { UUID.fromString(body.fromTeamId) }.getOrNull()
+            ?: return@post call.respond(HttpStatusCode.BadRequest)
+        call.respondMember(teams.copyRules(user, fromTeamId, teamId))
     }
 
     post("/api/teams/{teamId}/invites") {

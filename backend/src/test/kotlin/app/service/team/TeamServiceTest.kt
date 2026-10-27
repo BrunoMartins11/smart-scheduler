@@ -6,6 +6,7 @@ import app.insertCompany
 import app.MemberState
 import app.insertTeam
 import app.memberCount
+import app.model.TeamRules
 import app.memberState
 import app.persistence.team.TeamRepository
 import app.persistence.user.UserRepository
@@ -387,5 +388,134 @@ class TeamServiceTest {
         assertTrue(memberState(team, managerId).active)
         assertEquals(MemberResult.NotFound, teams.removeMember(foreignAdmin, team, managerId))
         assertTrue(memberState(team, managerId).active)
+    }
+
+    // team rules
+
+    private val pilot = TeamRules(720, 720, 2880, 26, 1440, null, null)
+    private val custom = TeamRules(60, 480, 2400, 13, 1000, 4, 600)
+
+    private fun setTimezone(teamId: UUID, tz: String) {
+        testDs.connection.use { c ->
+            c.prepareStatement("UPDATE team SET timezone = ? WHERE id = ?").use { st ->
+                st.setString(1, tz)
+                st.setObject(2, teamId)
+                st.executeUpdate()
+            }
+        }
+    }
+
+    private fun timezone(teamId: UUID): String =
+        testDs.connection.use { c ->
+            c.prepareStatement("SELECT timezone FROM team WHERE id = ?").use { st ->
+                st.setObject(1, teamId)
+                st.executeQuery().use { it.next(); it.getString(1) }
+            }
+        }
+
+    @Test
+    fun freshTeamHasPilotRulesAndNonManagersSeeNone() {
+        val company = insertCompany()
+        val team = insertTeam(company)
+        val admin = auth.currentUser(insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true))!!
+        val memberId = insertAccount("member-${uniq()}@x.pt", companyId = company)
+        addMember(team, memberId, "MEMBER")
+        val foreignAdmin = auth.currentUser(insertAccount("admin-${uniq()}@x.pt", companyId = insertCompany(), admin = true))!!
+
+        assertEquals(pilot, teams.getRules(admin, team))
+        assertNull(teams.getRules(auth.currentUser(memberId)!!, team))
+        assertNull(teams.getRules(foreignAdmin, team))
+    }
+
+    @Test
+    fun setRulesReplacesAllAndClearsNullableRules() {
+        val company = insertCompany()
+        val team = insertTeam(company)
+        val admin = auth.currentUser(insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true))!!
+
+        assertEquals(MemberResult.Ok, teams.setRules(admin, team, custom))
+        assertEquals(custom, teams.getRules(admin, team))
+
+        assertEquals(MemberResult.Ok, teams.setRules(admin, team, TeamRules(100, 200, 300, 1, 400)))
+        assertEquals(TeamRules(100, 200, 300, 1, 400, null, null), teams.getRules(admin, team))
+    }
+
+    @Test
+    fun setRulesOnlyForTeamManagersAndLeavesRulesUnchangedOtherwise() {
+        val company = insertCompany()
+        val team = insertTeam(company)
+        val other = insertTeam(company)
+        val admin = auth.currentUser(insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true))!!
+        val managerId = insertAccount("mgr-${uniq()}@x.pt", companyId = company)
+        addMember(team, managerId, "MANAGER")
+        val otherManagerId = insertAccount("mgr-${uniq()}@x.pt", companyId = company)
+        addMember(other, otherManagerId, "MANAGER")
+        val memberId = insertAccount("member-${uniq()}@x.pt", companyId = company)
+        addMember(team, memberId, "MEMBER")
+        val foreignAdmin = auth.currentUser(insertAccount("admin-${uniq()}@x.pt", companyId = insertCompany(), admin = true))!!
+
+        assertEquals(MemberResult.NotFound, teams.setRules(auth.currentUser(otherManagerId)!!, team, custom))
+        assertEquals(MemberResult.NotFound, teams.setRules(auth.currentUser(memberId)!!, team, custom))
+        assertEquals(MemberResult.NotFound, teams.setRules(foreignAdmin, team, custom))
+        assertEquals(pilot, teams.getRules(admin, team))
+
+        assertEquals(MemberResult.Ok, teams.setRules(auth.currentUser(managerId)!!, team, custom))
+        assertEquals(custom, teams.getRules(admin, team))
+    }
+
+    @Test
+    fun setRulesRejectsNonPositiveValuesAndWeeksOutOfRange() {
+        val company = insertCompany()
+        val team = insertTeam(company)
+        val admin = auth.currentUser(insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true))!!
+        val invalid = listOf(
+            custom.copy(minRestBetweenShiftsMin = 0),
+            custom.copy(maxConsecutiveWorkMin = -1),
+            custom.copy(maxAvgWeeklyWorkMin = 0),
+            custom.copy(minWeeklyRestMin = 0),
+            custom.copy(maxConsecutiveNights = 0),
+            custom.copy(restAfterNightRunMin = -5),
+            custom.copy(avgReferenceWeeks = 0),
+            custom.copy(avgReferenceWeeks = 53),
+        )
+
+        invalid.forEach { assertEquals(MemberResult.Invalid, teams.setRules(admin, team, it)) }
+        assertEquals(pilot, teams.getRules(admin, team))
+    }
+
+    @Test
+    fun copyRulesNeedsManageOfBothTeamsAndCopiesOnlyRules() {
+        val company = insertCompany()
+        val source = insertTeam(company)
+        val target = insertTeam(company)
+        val admin = auth.currentUser(insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true))!!
+        assertEquals(MemberResult.Ok, teams.setRules(admin, source, custom))
+        setTimezone(target, "Europe/Madrid")
+        val managerId = insertAccount("mgr-${uniq()}@x.pt", companyId = company)
+        addMember(source, managerId, "MANAGER")
+        val manager = auth.currentUser(managerId)!!
+
+        assertEquals(MemberResult.NotFound, teams.copyRules(manager, source, target))
+        assertEquals(pilot, teams.getRules(admin, target))
+
+        addMember(target, managerId, "MANAGER")
+        assertEquals(MemberResult.Ok, teams.copyRules(auth.currentUser(managerId)!!, source, target))
+        assertEquals(custom, teams.getRules(admin, target))
+        assertEquals("Europe/Madrid", timezone(target))
+    }
+
+    @Test
+    fun copyRulesAcrossCompaniesGetsNotFound() {
+        val companyA = insertCompany()
+        val companyB = insertCompany()
+        val source = insertTeam(companyA)
+        val target = insertTeam(companyB)
+        val adminA = auth.currentUser(insertAccount("admin-${uniq()}@x.pt", companyId = companyA, admin = true))!!
+        val adminB = auth.currentUser(insertAccount("admin-${uniq()}@x.pt", companyId = companyB, admin = true))!!
+        assertEquals(MemberResult.Ok, teams.setRules(adminA, source, custom))
+
+        assertEquals(MemberResult.NotFound, teams.copyRules(adminA, source, target))
+        assertEquals(MemberResult.NotFound, teams.copyRules(adminB, source, target))
+        assertEquals(pilot, teams.getRules(adminB, target))
     }
 }

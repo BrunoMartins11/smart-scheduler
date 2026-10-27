@@ -1,6 +1,7 @@
 package app.service.team
 
 import app.model.CurrentUser
+import app.model.TeamRules
 import app.persistence.team.TeamMemberRow
 import app.persistence.team.TeamRepository
 import app.persistence.team.TeamSummary
@@ -102,5 +103,26 @@ class TeamService(private val teams: TeamRepository) {
         // Same rule as invite and role change: only a company admin removes a MANAGER.
         if (role == "MANAGER" && !actor.isCompanyAdmin) return MemberResult.NotFound
         return if (teams.deactivateMember(teamId, actor.companyId, userId)) MemberResult.Ok else MemberResult.NotFound
+    }
+
+    // Null when the caller cannot manage the team, so the route answers 404.
+    fun getRules(actor: CurrentUser, teamId: UUID): TeamRules? =
+        if (canManage(actor, teamId)) teams.getRules(teamId, actor.companyId) else null
+
+    // Full replace. Validation runs before the reach check, same as updateMember.
+    fun setRules(actor: CurrentUser, teamId: UUID, rules: TeamRules): MemberResult {
+        val positive = listOf(
+            rules.minRestBetweenShiftsMin, rules.maxConsecutiveWorkMin, rules.maxAvgWeeklyWorkMin, rules.minWeeklyRestMin,
+            rules.maxConsecutiveNights, rules.restAfterNightRunMin,
+        )
+        if (positive.any { it != null && it <= 0 } || rules.avgReferenceWeeks !in 1..52) return MemberResult.Invalid
+        if (!canManage(actor, teamId)) return MemberResult.NotFound
+        return if (teams.updateRules(teamId, actor.companyId, rules)) MemberResult.Ok else MemberResult.NotFound
+    }
+
+    // Copies rules into toTeamId. The caller must manage both teams.
+    fun copyRules(actor: CurrentUser, fromTeamId: UUID, toTeamId: UUID): MemberResult {
+        if (!canManage(actor, fromTeamId) || !canManage(actor, toTeamId)) return MemberResult.NotFound
+        return if (teams.copyRules(fromTeamId, toTeamId, actor.companyId)) MemberResult.Ok else MemberResult.NotFound
     }
 }

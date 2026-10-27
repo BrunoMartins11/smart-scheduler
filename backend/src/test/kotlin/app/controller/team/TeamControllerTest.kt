@@ -16,6 +16,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
@@ -31,6 +32,8 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -426,5 +429,138 @@ class TeamControllerTest {
         assertEquals(HttpStatusCode.NotFound, deleteAs(memberId, "/api/teams/$team/members/$managerId").status)
         assertEquals(HttpStatusCode.NotFound, deleteAs(memberId, "/api/teams/$team/members/$memberId").status)
         assertTrue(memberState(team, memberId).active)
+    }
+
+    // /api/teams/{teamId}/rules
+
+    private suspend fun ApplicationTestBuilder.putAs(userId: UUID, path: String, body: String): HttpResponse =
+        client.put(path) {
+            header(HttpHeaders.Cookie, sessionCookie(userId))
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }
+
+    private val pilotJson = """{"minRestBetweenShiftsMin":720,"maxConsecutiveWorkMin":720,"maxAvgWeeklyWorkMin":2880,""" +
+        """"avgReferenceWeeks":26,"minWeeklyRestMin":1440,"maxConsecutiveNights":null,"restAfterNightRunMin":null}"""
+    private val customJson = """{"minRestBetweenShiftsMin":60,"maxConsecutiveWorkMin":480,"maxAvgWeeklyWorkMin":2400,""" +
+        """"avgReferenceWeeks":13,"minWeeklyRestMin":1000,"maxConsecutiveNights":4,"restAfterNightRunMin":600}"""
+
+    @Test
+    fun getRulesReturnsPilotDefaultsForManagerAndAdmin() = routeTest {
+        val company = insertCompany()
+        val team = insertTeam(company)
+        val admin = insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true)
+        val manager = insertAccount("mgr-${uniq()}@x.pt", companyId = company)
+        addMember(team, manager, "MANAGER")
+
+        for (userId in listOf(admin, manager)) {
+            val response = getAs(userId, "/api/teams/$team/rules")
+            assertEquals(HttpStatusCode.OK, response.status)
+            assertEquals(Json.parseToJsonElement(pilotJson), Json.parseToJsonElement(response.bodyAsText()))
+        }
+    }
+
+    @Test
+    fun getRulesHidesOutsideReachAndBadIdsWithNotFound() = routeTest {
+        val company = insertCompany()
+        val team = insertTeam(company)
+        val member = insertAccount("member-${uniq()}@x.pt", companyId = company)
+        addMember(team, member, "MEMBER")
+        val foreignAdmin = insertAccount("admin-${uniq()}@x.pt", companyId = insertCompany(), admin = true)
+
+        assertEquals(HttpStatusCode.NotFound, getAs(member, "/api/teams/$team/rules").status)
+        assertEquals(HttpStatusCode.NotFound, getAs(foreignAdmin, "/api/teams/$team/rules").status)
+        assertEquals(HttpStatusCode.NotFound, getAs(foreignAdmin, "/api/teams/not-a-uuid/rules").status)
+    }
+
+    @Test
+    fun putRulesReplacesAllAndCanClearNullableRules() = routeTest {
+        val company = insertCompany()
+        val team = insertTeam(company)
+        val admin = insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true)
+
+        assertEquals(HttpStatusCode.NoContent, putAs(admin, "/api/teams/$team/rules", customJson).status)
+        assertEquals(Json.parseToJsonElement(customJson), Json.parseToJsonElement(getAs(admin, "/api/teams/$team/rules").bodyAsText()))
+
+        val omitted = """{"minRestBetweenShiftsMin":100,"maxConsecutiveWorkMin":200,"maxAvgWeeklyWorkMin":300,"avgReferenceWeeks":1,"minWeeklyRestMin":400}"""
+        assertEquals(HttpStatusCode.NoContent, putAs(admin, "/api/teams/$team/rules", omitted).status)
+        val json = Json.parseToJsonElement(getAs(admin, "/api/teams/$team/rules").bodyAsText()).jsonObject
+        assertEquals(100, json["minRestBetweenShiftsMin"]!!.jsonPrimitive.int)
+        assertEquals(JsonNull, json["maxConsecutiveNights"])
+        assertEquals(JsonNull, json["restAfterNightRunMin"])
+    }
+
+    @Test
+    fun putRulesInvalidOrMalformedGets400AndChangesNothing() = routeTest {
+        val company = insertCompany()
+        val team = insertTeam(company)
+        val admin = insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true)
+        val path = "/api/teams/$team/rules"
+        val bad = listOf(
+            customJson.replace("\"avgReferenceWeeks\":13", "\"avgReferenceWeeks\":0"),
+            customJson.replace("\"avgReferenceWeeks\":13", "\"avgReferenceWeeks\":53"),
+            customJson.replace("\"minRestBetweenShiftsMin\":60", "\"minRestBetweenShiftsMin\":0"),
+            customJson.replace("\"maxConsecutiveNights\":4", "\"maxConsecutiveNights\":-1"),
+            customJson.replace("\"restAfterNightRunMin\":600", "\"restAfterNightRunMin\":0"),
+            customJson.replace("\"minWeeklyRestMin\":1000", "\"minWeeklyRestMin\":null"),
+            """{"minRestBetweenShiftsMin":60}""",
+            "{not json",
+        )
+
+        for (body in bad) assertEquals(HttpStatusCode.BadRequest, putAs(admin, path, body).status, body)
+        assertEquals(Json.parseToJsonElement(pilotJson), Json.parseToJsonElement(getAs(admin, path).bodyAsText()))
+    }
+
+    @Test
+    fun putRulesOutsideReachGets404AndChangesNothing() = routeTest {
+        val company = insertCompany()
+        val team = insertTeam(company)
+        val otherManager = insertAccount("mgr-${uniq()}@x.pt", companyId = company)
+        addMember(insertTeam(company), otherManager, "MANAGER")
+        val member = insertAccount("member-${uniq()}@x.pt", companyId = company)
+        addMember(team, member, "MEMBER")
+        val foreignAdmin = insertAccount("admin-${uniq()}@x.pt", companyId = insertCompany(), admin = true)
+
+        assertEquals(HttpStatusCode.NotFound, putAs(otherManager, "/api/teams/$team/rules", customJson).status)
+        assertEquals(HttpStatusCode.NotFound, putAs(member, "/api/teams/$team/rules", customJson).status)
+        assertEquals(HttpStatusCode.NotFound, putAs(foreignAdmin, "/api/teams/$team/rules", customJson).status)
+        assertEquals(HttpStatusCode.NotFound, putAs(foreignAdmin, "/api/teams/not-a-uuid/rules", customJson).status)
+        val admin = insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true)
+        assertEquals(Json.parseToJsonElement(pilotJson), Json.parseToJsonElement(getAs(admin, "/api/teams/$team/rules").bodyAsText()))
+    }
+
+    @Test
+    fun copyRulesNeedsBothTeamsAndSameCompany() = routeTest {
+        val company = insertCompany()
+        val source = insertTeam(company)
+        val target = insertTeam(company)
+        val admin = insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true)
+        assertEquals(HttpStatusCode.NoContent, putAs(admin, "/api/teams/$source/rules", customJson).status)
+        val copyBody = """{"fromTeamId":"$source"}"""
+
+        val partialManager = insertAccount("mgr-${uniq()}@x.pt", companyId = company)
+        addMember(target, partialManager, "MANAGER")
+        assertEquals(HttpStatusCode.NotFound, postAs(partialManager, "/api/teams/$target/rules/copy", copyBody).status)
+
+        val bothManager = insertAccount("mgr-${uniq()}@x.pt", companyId = company)
+        addMember(source, bothManager, "MANAGER")
+        addMember(target, bothManager, "MANAGER")
+        assertEquals(HttpStatusCode.NoContent, postAs(bothManager, "/api/teams/$target/rules/copy", copyBody).status)
+        assertEquals(Json.parseToJsonElement(customJson), Json.parseToJsonElement(getAs(admin, "/api/teams/$target/rules").bodyAsText()))
+
+        val foreignAdmin = insertAccount("admin-${uniq()}@x.pt", companyId = insertCompany(), admin = true)
+        assertEquals(HttpStatusCode.NotFound, postAs(foreignAdmin, "/api/teams/$target/rules/copy", copyBody).status)
+        assertEquals(HttpStatusCode.NotFound, postAs(admin, "/api/teams/$target/rules/copy", """{"fromTeamId":"${UUID.randomUUID()}"}""").status)
+    }
+
+    @Test
+    fun copyRulesBadBodyOrIdGets400Or404() = routeTest {
+        val company = insertCompany()
+        val team = insertTeam(company)
+        val admin = insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true)
+
+        assertEquals(HttpStatusCode.BadRequest, postAs(admin, "/api/teams/$team/rules/copy", """{"fromTeamId":"nope"}""").status)
+        assertEquals(HttpStatusCode.BadRequest, postAs(admin, "/api/teams/$team/rules/copy", "{not json").status)
+        assertEquals(HttpStatusCode.NotFound, postAs(admin, "/api/teams/not-a-uuid/rules/copy", """{"fromTeamId":"$team"}""").status)
     }
 }

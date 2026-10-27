@@ -1,5 +1,6 @@
 package app.persistence.team
 
+import app.model.TeamRules
 import java.sql.SQLException
 import java.util.UUID
 import javax.sql.DataSource
@@ -169,6 +170,65 @@ class TeamRepository(private val ds: DataSource) {
                 st.setObject(1, teamId)
                 st.setObject(2, userId)
                 st.setObject(3, companyId)
+                st.executeUpdate() == 1
+            }
+        }
+
+    // Null when the team is not in the company.
+    fun getRules(teamId: UUID, companyId: UUID): TeamRules? =
+        ds.connection.use { c ->
+            c.prepareStatement(
+                "SELECT min_rest_between_shifts_min, max_consecutive_work_min, max_avg_weekly_work_min, avg_reference_weeks, " +
+                    "min_weekly_rest_min, max_consecutive_nights, rest_after_night_run_min FROM team WHERE id = ? AND company_id = ?"
+            ).use { st ->
+                st.setObject(1, teamId)
+                st.setObject(2, companyId)
+                st.executeQuery().use { rs ->
+                    if (!rs.next()) return@use null
+                    TeamRules(
+                        rs.getInt(1), rs.getInt(2), rs.getInt(3), rs.getInt(4), rs.getInt(5),
+                        rs.getInt(6).takeUnless { rs.wasNull() },
+                        rs.getInt(7).takeUnless { rs.wasNull() },
+                    )
+                }
+            }
+        }
+
+    // Full replace of the seven rule columns. Returns false when the team is not in the company.
+    fun updateRules(teamId: UUID, companyId: UUID, rules: TeamRules): Boolean =
+        ds.connection.use { c ->
+            c.prepareStatement(
+                "UPDATE team SET min_rest_between_shifts_min = ?, max_consecutive_work_min = ?, max_avg_weekly_work_min = ?, " +
+                    "avg_reference_weeks = ?, min_weekly_rest_min = ?, max_consecutive_nights = ?, rest_after_night_run_min = ? " +
+                    "WHERE id = ? AND company_id = ?"
+            ).use { st ->
+                st.setInt(1, rules.minRestBetweenShiftsMin)
+                st.setInt(2, rules.maxConsecutiveWorkMin)
+                st.setInt(3, rules.maxAvgWeeklyWorkMin)
+                st.setInt(4, rules.avgReferenceWeeks)
+                st.setInt(5, rules.minWeeklyRestMin)
+                st.setObject(6, rules.maxConsecutiveNights)
+                st.setObject(7, rules.restAfterNightRunMin)
+                st.setObject(8, teamId)
+                st.setObject(9, companyId)
+                st.executeUpdate() == 1
+            }
+        }
+
+    // Single UPDATE ... FROM. Both teams must be in the company. Copies only the seven rule columns.
+    fun copyRules(fromTeamId: UUID, toTeamId: UUID, companyId: UUID): Boolean =
+        ds.connection.use { c ->
+            c.prepareStatement(
+                "UPDATE team t SET min_rest_between_shifts_min = s.min_rest_between_shifts_min, " +
+                    "max_consecutive_work_min = s.max_consecutive_work_min, max_avg_weekly_work_min = s.max_avg_weekly_work_min, " +
+                    "avg_reference_weeks = s.avg_reference_weeks, min_weekly_rest_min = s.min_weekly_rest_min, " +
+                    "max_consecutive_nights = s.max_consecutive_nights, rest_after_night_run_min = s.rest_after_night_run_min " +
+                    "FROM team s WHERE t.id = ? AND t.company_id = ? AND s.id = ? AND s.company_id = ?"
+            ).use { st ->
+                st.setObject(1, toTeamId)
+                st.setObject(2, companyId)
+                st.setObject(3, fromTeamId)
+                st.setObject(4, companyId)
                 st.executeUpdate() == 1
             }
         }
