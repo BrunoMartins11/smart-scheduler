@@ -1,7 +1,9 @@
 package app.service.team
 
 import app.model.CurrentUser
+import app.persistence.team.TeamMemberRow
 import app.persistence.team.TeamRepository
+import app.persistence.team.TeamSummary
 import java.util.UUID
 
 sealed interface InviteResult {
@@ -9,6 +11,12 @@ sealed interface InviteResult {
     data object NotFound : InviteResult
     data object EmailTaken : InviteResult
     data object Invalid : InviteResult
+}
+
+sealed interface MemberResult {
+    data object Ok : MemberResult
+    data object NotFound : MemberResult
+    data object Invalid : MemberResult
 }
 
 class TeamService(private val teams: TeamRepository) {
@@ -46,5 +54,53 @@ class TeamService(private val teams: TeamRepository) {
         val trimmed = name.trim()
         if (!actor.isCompanyAdmin || trimmed.isEmpty()) return null
         return teams.createTeam(actor.companyId, trimmed)
+    }
+
+    fun visibleTeams(actor: CurrentUser): List<TeamSummary> =
+        teams.listVisibleTeams(actor.companyId, actor.id, actor.isCompanyAdmin)
+
+    // Null when the caller cannot manage the team, so the route answers 404.
+    fun listMembers(actor: CurrentUser, teamId: UUID): List<TeamMemberRow>? =
+        if (canManage(actor, teamId)) teams.listMembers(teamId, actor.companyId) else null
+
+    // Partial update: null fields are left unchanged. `active` covers reactivation (false is handled by removeMember).
+    fun updateMember(
+        actor: CurrentUser,
+        teamId: UUID,
+        userId: UUID,
+        ftePercent: Int?,
+        worksShifts: Boolean?,
+        role: String?,
+        active: Boolean? = null,
+    ): MemberResult {
+        if ((role != null && role !in setOf("MANAGER", "MEMBER")) || (ftePercent != null && ftePercent !in 1..100)) {
+            return MemberResult.Invalid
+        }
+        if (!canManage(actor, teamId)) return MemberResult.NotFound
+        // Same guard as removeMember: deactivating yourself would leave the team unmanaged by accident.
+        if (active == false && userId == actor.id) return MemberResult.Invalid
+        val current = teams.memberRole(teamId, actor.companyId, userId) ?: return MemberResult.NotFound
+        // Same rule as invite: only a company admin creates or removes a MANAGER.
+        val touchesManager = role != null && role != current && (role == "MANAGER" || current == "MANAGER")
+        if (touchesManager && !actor.isCompanyAdmin) return MemberResult.NotFound
+        // Toggling active on another MANAGER is admin-only, same as removeMember. Own row: self-deactivate is refused above, self-activate is a no-op.
+        if (active != null && current == "MANAGER" && userId != actor.id && !actor.isCompanyAdmin) return MemberResult.NotFound
+        // Unchanged role is passed as null so the column is never rewritten.
+        val roleToWrite = role.takeIf { it != current }
+        return if (teams.updateMember(teamId, actor.companyId, userId, ftePercent, worksShifts, roleToWrite, active)) {
+            MemberResult.Ok
+        } else {
+            MemberResult.NotFound
+        }
+    }
+
+    // Soft remove. Refuses self-removal so a team is never left unmanaged by accident.
+    fun removeMember(actor: CurrentUser, teamId: UUID, userId: UUID): MemberResult {
+        if (!canManage(actor, teamId)) return MemberResult.NotFound
+        if (userId == actor.id) return MemberResult.Invalid
+        val role = teams.memberRole(teamId, actor.companyId, userId) ?: return MemberResult.NotFound
+        // Same rule as invite and role change: only a company admin removes a MANAGER.
+        if (role == "MANAGER" && !actor.isCompanyAdmin) return MemberResult.NotFound
+        return if (teams.deactivateMember(teamId, actor.companyId, userId)) MemberResult.Ok else MemberResult.NotFound
     }
 }

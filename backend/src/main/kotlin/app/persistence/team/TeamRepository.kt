@@ -4,6 +4,18 @@ import java.sql.SQLException
 import java.util.UUID
 import javax.sql.DataSource
 
+data class TeamSummary(val id: UUID, val name: String)
+
+data class TeamMemberRow(
+    val userId: UUID,
+    val email: String,
+    val displayName: String,
+    val role: String,
+    val ftePercent: Int,
+    val worksShifts: Boolean,
+    val active: Boolean,
+)
+
 class TeamRepository(private val ds: DataSource) {
 
     fun teamInCompany(teamId: UUID, companyId: UUID): Boolean =
@@ -71,4 +83,93 @@ class TeamRepository(private val ds: DataSource) {
             }
         }
     }
+
+    // Admins see every team in the company; everyone else sees teams where they are an active member.
+    fun listVisibleTeams(companyId: UUID, userId: UUID, isCompanyAdmin: Boolean): List<TeamSummary> =
+        ds.connection.use { c ->
+            c.prepareStatement(
+                "SELECT id, name FROM team WHERE company_id = ? AND (? OR id IN (SELECT team_id FROM team_member WHERE user_id = ? AND active)) ORDER BY name"
+            ).use { st ->
+                st.setObject(1, companyId)
+                st.setBoolean(2, isCompanyAdmin)
+                st.setObject(3, userId)
+                st.executeQuery().use { rs ->
+                    buildList { while (rs.next()) add(TeamSummary(rs.getObject(1, UUID::class.java), rs.getString(2))) }
+                }
+            }
+        }
+
+    fun listMembers(teamId: UUID, companyId: UUID): List<TeamMemberRow> =
+        ds.connection.use { c ->
+            c.prepareStatement(
+                "SELECT u.id, u.email::text, u.display_name, tm.role, tm.fte_percent, tm.works_shifts, tm.active " +
+                    "FROM team_member tm JOIN team t ON t.id = tm.team_id JOIN user_account u ON u.id = tm.user_id " +
+                    "WHERE t.id = ? AND t.company_id = ? ORDER BY u.display_name"
+            ).use { st ->
+                st.setObject(1, teamId)
+                st.setObject(2, companyId)
+                st.executeQuery().use { rs ->
+                    buildList {
+                        while (rs.next()) add(
+                            TeamMemberRow(
+                                rs.getObject(1, UUID::class.java), rs.getString(2), rs.getString(3), rs.getString(4),
+                                rs.getInt(5), rs.getBoolean(6), rs.getBoolean(7),
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+    fun memberRole(teamId: UUID, companyId: UUID, userId: UUID): String? =
+        ds.connection.use { c ->
+            c.prepareStatement(
+                "SELECT role FROM team_member WHERE team_id = ? AND user_id = ? AND team_id IN (SELECT id FROM team WHERE company_id = ?)"
+            ).use { st ->
+                st.setObject(1, teamId)
+                st.setObject(2, userId)
+                st.setObject(3, companyId)
+                st.executeQuery().use { if (it.next()) it.getString(1) else null }
+            }
+        }
+
+    // Null arguments keep the stored value (partial update). Returns false when no member row matches.
+    fun updateMember(
+        teamId: UUID,
+        companyId: UUID,
+        userId: UUID,
+        ftePercent: Int?,
+        worksShifts: Boolean?,
+        role: String?,
+        active: Boolean?,
+    ): Boolean =
+        ds.connection.use { c ->
+            c.prepareStatement(
+                "UPDATE team_member SET fte_percent = COALESCE(?, fte_percent), works_shifts = COALESCE(?, works_shifts), " +
+                    "role = COALESCE(?, role), active = COALESCE(?, active) " +
+                    "WHERE team_id = ? AND user_id = ? AND team_id IN (SELECT id FROM team WHERE company_id = ?)"
+            ).use { st ->
+                st.setObject(1, ftePercent)
+                st.setObject(2, worksShifts)
+                st.setObject(3, role)
+                st.setObject(4, active)
+                st.setObject(5, teamId)
+                st.setObject(6, userId)
+                st.setObject(7, companyId)
+                st.executeUpdate() == 1
+            }
+        }
+
+    // Soft remove: sets active = false, never deletes the row.
+    fun deactivateMember(teamId: UUID, companyId: UUID, userId: UUID): Boolean =
+        ds.connection.use { c ->
+            c.prepareStatement(
+                "UPDATE team_member SET active = false WHERE team_id = ? AND user_id = ? AND team_id IN (SELECT id FROM team WHERE company_id = ?)"
+            ).use { st ->
+                st.setObject(1, teamId)
+                st.setObject(2, userId)
+                st.setObject(3, companyId)
+                st.executeUpdate() == 1
+            }
+        }
 }

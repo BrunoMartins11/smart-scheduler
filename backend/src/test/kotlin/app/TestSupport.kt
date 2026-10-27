@@ -107,6 +107,22 @@ fun memberCount(teamId: UUID): Int =
         }
     }
 
+data class MemberState(val role: String, val ftePercent: Int, val worksShifts: Boolean, val active: Boolean)
+
+fun memberState(teamId: UUID, userId: UUID): MemberState =
+    testDs.connection.use { c ->
+        c.prepareStatement(
+            "SELECT role, fte_percent, works_shifts, active FROM team_member WHERE team_id = ? AND user_id = ?"
+        ).use { st ->
+            st.setObject(1, teamId)
+            st.setObject(2, userId)
+            st.executeQuery().use { rs ->
+                rs.next()
+                MemberState(rs.getString(1), rs.getInt(2), rs.getBoolean(3), rs.getBoolean(4))
+            }
+        }
+    }
+
 data class AccountRow(val authSubject: String?, val companyId: UUID, val email: String)
 
 fun accountRow(userId: UUID): AccountRow =
