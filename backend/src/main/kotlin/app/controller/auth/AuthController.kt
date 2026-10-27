@@ -2,7 +2,6 @@ package app.controller.auth
 
 import app.service.auth.AuthService
 import app.service.auth.Login
-import app.service.user.UserService
 import app.service.user.CurrentUser
 import com.auth0.jwk.JwkProvider
 import com.auth0.jwt.JWT
@@ -92,8 +91,8 @@ fun Route.authRoutes(
 }
 
 // Shared by every protected route. Responds 401 and clears the session when there is no usable user.
-suspend fun ApplicationCall.currentUser(users: UserService): CurrentUser? {
-    val user = sessions.get<UserSession>()?.let { users.loadCurrentUser(UUID.fromString(it.userId)) }
+suspend fun ApplicationCall.currentUser(auth: AuthService): CurrentUser? {
+    val user = sessions.get<UserSession>()?.let { auth.currentUser(UUID.fromString(it.userId)) }
     if (user == null || user.deactivated) {
         sessions.clear<UserSession>()
         respond(HttpStatusCode.Unauthorized)

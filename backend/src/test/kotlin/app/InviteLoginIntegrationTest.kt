@@ -6,7 +6,6 @@ import app.service.auth.AuthService
 import app.service.auth.Login
 import app.service.team.InviteResult
 import app.service.team.TeamService
-import app.service.user.UserService
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -15,14 +14,13 @@ import kotlin.test.assertNull
 // Invite by a team manager, then the invitee's first login claims the account.
 class InviteLoginIntegrationTest {
 
-    private val users = UserService(UserRepository(testDs))
-    private val auth = AuthService(users)
+    private val auth = AuthService(UserRepository(testDs))
     private val teams = TeamService(TeamRepository(testDs))
 
     @Test
     fun adminInvitesMemberAsUnclaimedAccountThatCanLogIn() {
         val company = insertCompany()
-        val admin = users.loadCurrentUser(insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true))!!
+        val admin = auth.currentUser(insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true))!!
         val team = insertTeam(company)
         val email = "ana-${uniq()}@hospital.pt"
 

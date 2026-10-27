@@ -1,7 +1,7 @@
 package app.controller.user
 
 import app.controller.auth.currentUser
-import app.service.user.UserService
+import app.service.auth.AuthService
 import io.ktor.http.ContentType
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
@@ -11,9 +11,9 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 
-fun Route.meRoutes(users: UserService) {
+fun Route.meRoutes(auth: AuthService) {
     get("/api/me") {
-        val user = call.currentUser(users) ?: return@get
+        val user = call.currentUser(auth) ?: return@get
         val body = buildJsonObject {
             put("id", user.id.toString())
             put("email", user.email)

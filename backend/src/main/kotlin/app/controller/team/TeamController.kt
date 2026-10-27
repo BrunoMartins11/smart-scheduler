@@ -1,9 +1,9 @@
 package app.controller.team
 
 import app.controller.auth.currentUser
+import app.service.auth.AuthService
 import app.service.team.InviteResult
 import app.service.team.TeamService
-import app.service.user.UserService
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receiveText
@@ -30,9 +30,9 @@ data class InviteRequest(
 @Serializable
 data class CreateTeamRequest(val name: String)
 
-fun Route.teamRoutes(users: UserService, teams: TeamService) {
+fun Route.teamRoutes(auth: AuthService, teams: TeamService) {
     post("/api/teams") {
-        val user = call.currentUser(users) ?: return@post
+        val user = call.currentUser(auth) ?: return@post
         val body = try {
             Json.decodeFromString<CreateTeamRequest>(call.receiveText())
         } catch (e: SerializationException) {
@@ -45,7 +45,7 @@ fun Route.teamRoutes(users: UserService, teams: TeamService) {
     }
 
     post("/api/teams/{teamId}/invites") {
-        val user = call.currentUser(users) ?: return@post
+        val user = call.currentUser(auth) ?: return@post
         val teamId = call.parameters["teamId"]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
             ?: return@post call.respond(HttpStatusCode.NotFound)
         val body = try {

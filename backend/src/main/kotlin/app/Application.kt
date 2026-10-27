@@ -11,7 +11,6 @@ import app.persistence.team.TeamRepository
 import app.persistence.user.UserRepository
 import app.service.team.TeamService
 import app.service.auth.AuthService
-import app.service.user.UserService
 import com.auth0.jwk.JwkProviderBuilder
 import io.ktor.client.HttpClient
 import io.ktor.http.HttpMethod
@@ -51,8 +50,7 @@ fun Application.module() {
     val encryptKey = hex(environment.config.property("session.encryptKey").getString())
     val signKey = hex(environment.config.property("session.signKey").getString())
 
-    val users = UserService(UserRepository(db))
-    val auth = AuthService(users)
+    val auth = AuthService(UserRepository(db))
     val teams = TeamService(TeamRepository(db))
 
     install(Sessions) {
@@ -105,7 +103,7 @@ fun Application.module() {
             call.respondText("ok")
         }
         authRoutes(auth, publicUrl, domain, clientId, secure, jwks, issuer)
-        meRoutes(users)
-        teamRoutes(users, teams)
+        meRoutes(auth)
+        teamRoutes(auth, teams)
     }
 }

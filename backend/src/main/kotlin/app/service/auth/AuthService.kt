@@ -1,6 +1,7 @@
 package app.service.auth
 
-import app.service.user.UserService
+import app.persistence.user.UserRepository
+import app.service.user.CurrentUser
 import java.util.UUID
 
 sealed interface Login {
@@ -9,7 +10,7 @@ sealed interface Login {
     data object Deactivated : Login
 }
 
-class AuthService(private val users: UserService) {
+class AuthService(private val users: UserRepository) {
 
     // Matches an account by Auth0 sub; otherwise claims an unclaimed invite by verified email.
     fun resolveLogin(sub: String, email: String?, emailVerified: Boolean): Login {
@@ -27,4 +28,6 @@ class AuthService(private val users: UserService) {
             else -> if (users.claimInvite(invited.id, sub)) Login.Ok(invited.id) else Login.NoInvite
         }
     }
+
+    fun currentUser(id: UUID): CurrentUser? = users.findCurrentUser(id)
 }

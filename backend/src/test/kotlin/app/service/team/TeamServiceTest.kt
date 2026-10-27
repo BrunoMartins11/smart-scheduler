@@ -7,7 +7,7 @@ import app.insertTeam
 import app.memberCount
 import app.persistence.team.TeamRepository
 import app.persistence.user.UserRepository
-import app.service.user.UserService
+import app.service.auth.AuthService
 import app.teamCompany
 import app.testDs
 import app.uniq
@@ -22,7 +22,7 @@ import kotlin.test.assertTrue
 
 class TeamServiceTest {
 
-    private val users = UserService(UserRepository(testDs))
+    private val auth = AuthService(UserRepository(testDs))
     private val teams = TeamService(TeamRepository(testDs))
 
     // canManage
@@ -30,7 +30,7 @@ class TeamServiceTest {
     @Test
     fun adminCanManageTeamInOwnCompany() {
         val company = insertCompany()
-        val admin = users.loadCurrentUser(insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true))!!
+        val admin = auth.currentUser(insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true))!!
         assertTrue(teams.canManage(admin, insertTeam(company)))
     }
 
@@ -38,14 +38,14 @@ class TeamServiceTest {
     fun adminCannotManageTeamOfAnotherCompany() {
         val companyA = insertCompany()
         val companyB = insertCompany()
-        val adminA = users.loadCurrentUser(insertAccount("admin-${uniq()}@x.pt", companyId = companyA, admin = true))!!
+        val adminA = auth.currentUser(insertAccount("admin-${uniq()}@x.pt", companyId = companyA, admin = true))!!
         assertFalse(teams.canManage(adminA, insertTeam(companyB)))
     }
 
     @Test
     fun adminCannotManageMissingTeam() {
         val company = insertCompany()
-        val admin = users.loadCurrentUser(insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true))!!
+        val admin = auth.currentUser(insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true))!!
         assertFalse(teams.canManage(admin, UUID.randomUUID()))
     }
 
@@ -57,7 +57,7 @@ class TeamServiceTest {
         val userId = insertAccount("manager-${uniq()}@x.pt", companyId = company)
         addMember(own, userId, "MANAGER")
         addMember(other, insertAccount("manager-${uniq()}@x.pt", companyId = company), "MANAGER")
-        val manager = users.loadCurrentUser(userId)!!
+        val manager = auth.currentUser(userId)!!
         assertEquals(setOf(own), manager.managedTeamIds)
         assertTrue(teams.canManage(manager, own))
         assertFalse(teams.canManage(manager, other))
@@ -69,7 +69,7 @@ class TeamServiceTest {
         val team = insertTeam(company)
         val userId = insertAccount("member-${uniq()}@x.pt", companyId = company)
         addMember(team, userId, "MEMBER")
-        val member = users.loadCurrentUser(userId)!!
+        val member = auth.currentUser(userId)!!
         assertEquals(emptySet(), member.managedTeamIds)
         assertFalse(teams.canManage(member, team))
     }
@@ -80,7 +80,7 @@ class TeamServiceTest {
         val team = insertTeam(company)
         val userId = insertAccount("manager-${uniq()}@x.pt", companyId = company)
         addMember(team, userId, "MANAGER", active = false)
-        assertFalse(teams.canManage(users.loadCurrentUser(userId)!!, team))
+        assertFalse(teams.canManage(auth.currentUser(userId)!!, team))
     }
 
     // inviteMember
@@ -91,7 +91,7 @@ class TeamServiceTest {
         val team = insertTeam(company)
         val managerId = insertAccount("mgr-${uniq()}@x.pt", companyId = company)
         addMember(team, managerId, "MANAGER")
-        val manager = users.loadCurrentUser(managerId)!!
+        val manager = auth.currentUser(managerId)!!
 
         assertIs<InviteResult.Created>(
             teams.inviteMember(manager, team, "new-${uniq()}@x.pt", "Bia", "MEMBER")
@@ -106,7 +106,7 @@ class TeamServiceTest {
         val other = insertTeam(company)
         val managerId = insertAccount("mgr-${uniq()}@x.pt", companyId = company)
         addMember(own, managerId, "MANAGER")
-        val manager = users.loadCurrentUser(managerId)!!
+        val manager = auth.currentUser(managerId)!!
 
         assertEquals(InviteResult.NotFound, teams.inviteMember(manager, other, "new-${uniq()}@x.pt", "Bia", "MEMBER"))
         assertEquals(0, memberCount(other))
@@ -118,7 +118,7 @@ class TeamServiceTest {
         val team = insertTeam(company)
         val managerId = insertAccount("mgr-${uniq()}@x.pt", companyId = company)
         addMember(team, managerId, "MANAGER")
-        val manager = users.loadCurrentUser(managerId)!!
+        val manager = auth.currentUser(managerId)!!
 
         assertEquals(InviteResult.NotFound, teams.inviteMember(manager, team, "new-${uniq()}@x.pt", "Bia", "MANAGER"))
         assertEquals(1, memberCount(team))
@@ -128,7 +128,7 @@ class TeamServiceTest {
     fun adminOfOtherCompanyGetsNotFound() {
         val companyA = insertCompany()
         val companyB = insertCompany()
-        val adminA = users.loadCurrentUser(insertAccount("admin-${uniq()}@x.pt", companyId = companyA, admin = true))!!
+        val adminA = auth.currentUser(insertAccount("admin-${uniq()}@x.pt", companyId = companyA, admin = true))!!
         val teamB = insertTeam(companyB)
 
         assertEquals(InviteResult.NotFound, teams.inviteMember(adminA, teamB, "new-${uniq()}@x.pt", "Bia", "MEMBER"))
@@ -138,7 +138,7 @@ class TeamServiceTest {
     @Test
     fun duplicateEmailIsTakenAndAddsNoMembership() {
         val company = insertCompany()
-        val admin = users.loadCurrentUser(insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true))!!
+        val admin = auth.currentUser(insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true))!!
         val team = insertTeam(company)
         val email = "dup-${uniq()}@x.pt"
         insertAccount(email, companyId = company)
@@ -150,7 +150,7 @@ class TeamServiceTest {
     @Test
     fun invalidInputIsRejected() {
         val company = insertCompany()
-        val admin = users.loadCurrentUser(insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true))!!
+        val admin = auth.currentUser(insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true))!!
         val team = insertTeam(company)
         val email = "ok-${uniq()}@x.pt"
 
@@ -166,10 +166,10 @@ class TeamServiceTest {
     @Test
     fun createTeamIsAdminOnly() {
         val company = insertCompany()
-        val admin = users.loadCurrentUser(insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true))!!
+        val admin = auth.currentUser(insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true))!!
         val memberId = insertAccount("member-${uniq()}@x.pt", companyId = company)
         addMember(insertTeam(company), memberId, "MEMBER")
-        val member = users.loadCurrentUser(memberId)!!
+        val member = auth.currentUser(memberId)!!
 
         val created = assertNotNull(teams.createTeam(admin, " Urgência "))
         assertEquals(company, teamCompany(created))
