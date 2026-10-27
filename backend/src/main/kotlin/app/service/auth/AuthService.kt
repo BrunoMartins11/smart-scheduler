@@ -1,7 +1,7 @@
 package app.service.auth
 
+import app.model.CurrentUser
 import app.persistence.user.UserRepository
-import app.service.user.CurrentUser
 import java.util.UUID
 
 sealed interface Login {

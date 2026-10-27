@@ -1,7 +1,7 @@
 package app.persistence.user
 
-import app.service.user.Account
-import app.service.user.CurrentUser
+import app.model.Account
+import app.model.CurrentUser
 import java.sql.Connection
 import java.util.UUID
 import javax.sql.DataSource

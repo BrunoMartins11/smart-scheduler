@@ -1,7 +1,7 @@
 package app.service.team
 
+import app.model.CurrentUser
 import app.persistence.team.TeamRepository
-import app.service.user.CurrentUser
 import java.util.UUID
 
 sealed interface InviteResult {

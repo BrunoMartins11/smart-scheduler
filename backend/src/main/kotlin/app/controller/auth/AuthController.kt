@@ -2,7 +2,7 @@ package app.controller.auth
 
 import app.service.auth.AuthService
 import app.service.auth.Login
-import app.service.user.CurrentUser
+import app.model.CurrentUser
 import com.auth0.jwk.JwkProvider
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
