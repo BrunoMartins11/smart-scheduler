@@ -2,14 +2,12 @@ package app.controller.auth
 
 import app.service.auth.AuthService
 import app.service.auth.Login
-import app.model.CurrentUser
 import com.auth0.jwk.JwkProvider
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.JWTVerificationException
 import com.auth0.jwt.interfaces.DecodedJWT
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.OAuthAccessTokenResponse
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.principal
@@ -20,13 +18,11 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.sessions.clear
-import io.ktor.server.sessions.get
 import io.ktor.server.sessions.set
 import io.ktor.server.sessions.sessions
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.security.interfaces.RSAPublicKey
-import java.util.UUID
 import kotlinx.serialization.Serializable
 
 // The session cookie holds only the user_account id (DATA_MODEL.md §3, Auth0 login flow).
@@ -38,7 +34,6 @@ const val OAUTH_STATE_COOKIE = "oauth_state"
 fun Route.authRoutes(
     auth: AuthService,
     publicUrl: String,
-    domain: String,
     clientId: String,
     secure: Boolean,
     jwks: JwkProvider,
@@ -86,19 +81,8 @@ fun Route.authRoutes(
     post("/auth/logout") {
         call.sessions.clear<UserSession>()
         val returnTo = URLEncoder.encode(publicUrl, StandardCharsets.UTF_8)
-        call.respondRedirect("https://$domain/v2/logout?client_id=$clientId&returnTo=$returnTo")
+        call.respondRedirect("${issuer}v2/logout?client_id=$clientId&returnTo=$returnTo")
     }
-}
-
-// Shared by every protected route. Responds 401 and clears the session when there is no usable user.
-suspend fun ApplicationCall.currentUser(auth: AuthService): CurrentUser? {
-    val user = sessions.get<UserSession>()?.let { auth.currentUser(UUID.fromString(it.userId)) }
-    if (user == null || user.deactivated) {
-        sessions.clear<UserSession>()
-        respond(HttpStatusCode.Unauthorized)
-        return null
-    }
-    return user
 }
 
 // Checks the signature (JWKS), issuer, audience and expiry of the ID token from the token endpoint.

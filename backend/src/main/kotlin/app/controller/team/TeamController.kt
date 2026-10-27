@@ -1,6 +1,6 @@
 package app.controller.team
 
-import app.controller.auth.currentUser
+import app.controller.currentUser
 import app.service.auth.AuthService
 import app.service.team.InviteResult
 import app.service.team.TeamService

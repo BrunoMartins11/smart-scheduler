@@ -1,6 +1,6 @@
 package app.controller.user
 
-import app.controller.auth.currentUser
+import app.controller.currentUser
 import app.service.auth.AuthService
 import io.ktor.http.ContentType
 import io.ktor.server.response.respondText

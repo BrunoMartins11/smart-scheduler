@@ -102,7 +102,7 @@ fun Application.module() {
         get("/health") {
             call.respondText("ok")
         }
-        authRoutes(auth, publicUrl, domain, clientId, secure, jwks, issuer)
+        authRoutes(auth, publicUrl, clientId, secure, jwks, issuer)
         meRoutes(auth)
         teamRoutes(auth, teams)
     }
