@@ -10,11 +10,12 @@ class UserRepository(private val ds: DataSource) {
 
     fun findBySubject(sub: String): Account? = findAccount("auth_subject = ?", sub)
 
+    // shortcut: a person invited by two companies claims the oldest invite only (auth_subject is unique), revisit when multi-company membership is needed
     fun findUnclaimedByEmail(email: String): Account? = findAccount("email = ? AND auth_subject IS NULL", email)
 
     private fun findAccount(where: String, value: String): Account? =
         ds.connection.use { c ->
-            c.prepareStatement("SELECT id, deactivated_at IS NOT NULL FROM user_account WHERE $where").use { st ->
+            c.prepareStatement("SELECT id, deactivated_at IS NOT NULL FROM user_account WHERE $where ORDER BY created_at LIMIT 1").use { st ->
                 st.setString(1, value)
                 st.executeQuery().use { rs ->
                     if (rs.next()) Account(rs.getObject(1, UUID::class.java), rs.getBoolean(2)) else null

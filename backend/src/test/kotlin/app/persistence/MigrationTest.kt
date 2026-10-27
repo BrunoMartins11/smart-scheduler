@@ -11,15 +11,15 @@ import kotlin.test.assertFailsWith
 class MigrationTest {
 
     @Test
-    fun v1AppliesAndAuditEventIsAppendOnly() {
-        // Fresh database, so V1 is the migration that runs.
+    fun migrationsApplyAndAuditEventIsAppendOnly() {
+        // Fresh database, so every migration runs (V1 and V2).
         val pg = PostgreSQLContainer("postgres:17").apply { start() }
         HikariDataSource(HikariConfig().apply {
             jdbcUrl = pg.jdbcUrl
             username = pg.username
             password = pg.password
         }).use { ds ->
-            assertEquals(1, migrate(ds).migrationsExecuted)
+            assertEquals(2, migrate(ds).migrationsExecuted)
             ds.connection.use { c ->
                 c.createStatement().executeUpdate("INSERT INTO company (name) VALUES ('Acme')")
                 c.createStatement().executeUpdate(

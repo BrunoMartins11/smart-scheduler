@@ -28,7 +28,7 @@ class TeamRepository(private val ds: DataSource) {
         return id
     }
 
-    // Returns null on a user_account.email unique violation (23505); rethrows any other SQLException.
+    // Returns null on a user_account (company_id, email) unique violation (23505): a same-company duplicate or a lost race. Rethrows any other SQLException.
     fun createInvitedMember(
         companyId: UUID,
         teamId: UUID,
@@ -65,7 +65,7 @@ class TeamRepository(private val ds: DataSource) {
                 return userId
             } catch (e: SQLException) {
                 c.rollback()
-                // 23505 is the user_account.email unique violation: already taken, or lost a race to a concurrent invite.
+                // 23505 is the user_account (company_id, email) unique violation: same-company duplicate or lost race.
                 if (e.sqlState == "23505") return null
                 throw e
             }

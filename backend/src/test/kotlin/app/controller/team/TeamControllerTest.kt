@@ -124,6 +124,20 @@ class TeamControllerTest {
     }
 
     @Test
+    fun inviteEmailUsedInOtherCompanyGets201() = routeTest {
+        val company = insertCompany()
+        val team = insertTeam(company)
+        val admin = insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true)
+        val email = "shared-${uniq()}@x.pt"
+        insertAccount(email, companyId = insertCompany())
+
+        val response = postAs(admin, "/api/teams/$team/invites", inviteBody(email))
+
+        assertEquals(HttpStatusCode.Created, response.status)
+        assertEquals(1, memberCount(team))
+    }
+
+    @Test
     fun invalidInviteRoleGets400() = routeTest {
         val company = insertCompany()
         val team = insertTeam(company)

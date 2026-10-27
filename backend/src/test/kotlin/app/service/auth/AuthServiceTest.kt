@@ -1,5 +1,6 @@
 package app.service.auth
 
+import app.accountRow
 import app.addMember
 import app.ensureDefaultCompany
 import app.insertAccount
@@ -18,7 +19,8 @@ import kotlin.test.assertTrue
 
 class AuthServiceTest {
 
-    private val auth = AuthService(UserRepository(testDs))
+    private val users = UserRepository(testDs)
+    private val auth = AuthService(users)
 
     init {
         ensureDefaultCompany()
@@ -59,6 +61,33 @@ class AuthServiceTest {
         val sub = "auth0|${uniq()}"
         insertAccount(email, sub = sub, deactivated = true)
         assertIs<Login.Deactivated>(auth.resolveLogin(sub, email, emailVerified = true))
+    }
+
+    @Test
+    fun deactivatedInviteIsRefusedEvenWhenUnclaimed() {
+        val email = "eva-${uniq()}@hospital.pt"
+        insertAccount(email, sub = null, deactivated = true)
+        assertIs<Login.Deactivated>(auth.resolveLogin("auth0|${uniq()}", email, emailVerified = true))
+    }
+
+    @Test
+    fun secondClaimOfSameInviteLoses() {
+        val id = insertAccount("fabio-${uniq()}@hospital.pt")
+        val subA = "auth0|${uniq()}"
+        val subB = "auth0|${uniq()}"
+        assertTrue(users.claimInvite(id, subA))
+        assertFalse(users.claimInvite(id, subB))
+        assertEquals(subA, accountRow(id).authSubject)
+    }
+
+    @Test
+    fun sameEmailInvitedByTwoCompaniesClaimsOldestInvite() {
+        val email = "gil-${uniq()}@hospital.pt"
+        val older = insertAccount(email, companyId = insertCompany())
+        val newer = insertAccount(email, companyId = insertCompany())
+        val sub = "auth0|${uniq()}"
+        assertEquals(Login.Ok(older), auth.resolveLogin(sub, email, emailVerified = true))
+        assertNull(accountRow(newer).authSubject)
     }
 
     @Test
