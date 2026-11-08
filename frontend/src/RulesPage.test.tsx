@@ -71,6 +71,19 @@ describe('RulesPage', () => {
     expect(JSON.parse(puts[0][1]!.body as string)).toEqual({ ...rules, minRestBetweenShiftsMin: 690 })
   })
 
+  it('saves 0 as the night limit, not null', async () => {
+    const fetchMock = stubApi()
+    renderPage()
+
+    fireEvent.change(await screen.findByLabelText('Máximo de noites seguidas'), { target: { value: '0' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+
+    await screen.findByRole('status')
+    const puts = fetchMock.mock.calls.filter(([, i]) => i?.method === 'PUT')
+    expect(puts).toHaveLength(1)
+    expect(puts[0][1]!.body as string).toContain('"maxConsecutiveNights":0')
+  })
+
   it('keeps Guardar disabled until a field changes', async () => {
     stubApi()
     renderPage()

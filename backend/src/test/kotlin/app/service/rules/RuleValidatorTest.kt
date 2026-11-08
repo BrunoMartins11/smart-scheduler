@@ -124,6 +124,12 @@ class RuleValidatorTest {
     }
 
     @Test
+    fun zeroNightLimitFiresOnAnyNight() {
+        val rules = loose.copy(maxConsecutiveNights = 0)
+        assertTrue(fires(Rule.MAX_CONSECUTIVE_NIGHTS, rules, listOf(night("2026-05-04"))))
+    }
+
+    @Test
     fun sameDateNightsCountAsOneDate() {
         val rules = loose.copy(maxConsecutiveNights = 2)
         val shifts = listOf(

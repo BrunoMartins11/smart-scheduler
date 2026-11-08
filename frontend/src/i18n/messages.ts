@@ -53,6 +53,7 @@ export const messages = {
   'rules.maxNights': 'Máximo de noites seguidas',
   'rules.restAfter': 'Descanso após noites seguidas (h)',
   'rules.notSet': 'Deixe vazio para não definir (sem limite).',
+  'rules.hint.maxNights': 'Deixe vazio para não limitar. 0 = sem turnos de noite.',
   'rules.hint.minRest': 'Urgência: 12 h',
   'rules.hint.maxWork': 'Urgência: 12 h',
   'rules.hint.maxAvg': 'Diretiva europeia: 48 h',

@@ -263,7 +263,7 @@ export function RulesPage() {
 
               <Section title="rules.section.nights" desc="rules.section.nights.desc">
                 <div className="grid gap-4 md:grid-cols-2">
-                  <Field id="rule-max-nights" text={t('rules.maxNights')} hint={t('rules.notSet')} optional unit="rules.unit.nights" min={1} step={1} disabled={busy} value={form.maxNights} onChange={set('maxNights')} />
+                  <Field id="rule-max-nights" text={t('rules.maxNights')} hint={t('rules.hint.maxNights')} optional unit="rules.unit.nights" min={0} step={1} disabled={busy} value={form.maxNights} onChange={set('maxNights')} />
                   <Field id="rule-rest-after" text={t('rules.restAfter')} hint={t('rules.notSet')} optional unit="rules.unit.h" min={0.5} step={0.5} disabled={busy} value={form.restAfter} onChange={set('restAfter')} />
                 </div>
               </Section>

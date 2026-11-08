@@ -473,7 +473,7 @@ class TeamServiceTest {
             custom.copy(maxConsecutiveWorkMin = -1),
             custom.copy(maxAvgWeeklyWorkMin = 0),
             custom.copy(minWeeklyRestMin = 0),
-            custom.copy(maxConsecutiveNights = 0),
+            custom.copy(maxConsecutiveNights = -1),
             custom.copy(restAfterNightRunMin = -5),
             custom.copy(avgReferenceWeeks = 0),
             custom.copy(avgReferenceWeeks = 53),
@@ -481,6 +481,17 @@ class TeamServiceTest {
 
         invalid.forEach { assertEquals(MemberResult.Invalid, teams.setRules(admin, team, it)) }
         assertEquals(pilot, teams.getRules(admin, team))
+    }
+
+    @Test
+    fun setRulesAcceptsZeroNightsLimit() {
+        val company = insertCompany()
+        val team = insertTeam(company)
+        val admin = auth.currentUser(insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true))!!
+        val noNights = custom.copy(maxConsecutiveNights = 0)
+
+        assertEquals(MemberResult.Ok, teams.setRules(admin, team, noNights))
+        assertEquals(noNights, teams.getRules(admin, team))
     }
 
     @Test
