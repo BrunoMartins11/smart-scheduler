@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router'
 import { TeamPage } from './TeamPage'
 
 const teams = [{ id: 't1', name: 'Urgências' }]
@@ -26,15 +27,26 @@ describe('TeamPage', () => {
       if (url === '/api/teams') return json(teams)
       return json(members())
     }))
-    render(<TeamPage />)
+    render(<MemoryRouter><TeamPage /></MemoryRouter>)
 
     const table = await screen.findByRole('table')
-    expect(within(table).getByRole('rowheader', { name: 'Ana Silva' })).toBeTruthy()
+    expect(within(table).getByRole('rowheader', { name: /Ana Silva/ })).toBeTruthy()
     expect(within(table).getByText('ana@example.pt')).toBeTruthy()
     expect(within(table).getByText('Inativo')).toBeTruthy()
     expect((within(table).getByRole('combobox', { name: 'Função Ana Silva' }) as HTMLSelectElement).value).toBe('MANAGER')
     expect((within(table).getByRole('combobox', { name: 'Função Rui Costa' }) as HTMLSelectElement).value).toBe('DOCTOR')
     expect((screen.getByLabelText('Escolher equipa') as HTMLSelectElement).value).toBe('t1')
+  })
+
+  it('selects the team named in ?team=', async () => {
+    const twoTeams = [...teams, { id: 't2', name: 'Cardiologia' }]
+    const fetchMock = vi.fn(async (url: string) => (url === '/api/teams' ? json(twoTeams) : json(members())))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<MemoryRouter initialEntries={['/equipa?team=t2']}><TeamPage /></MemoryRouter>)
+
+    await screen.findByRole('table')
+    expect((screen.getByLabelText('Escolher equipa') as HTMLSelectElement).value).toBe('t2')
+    expect(fetchMock.mock.calls.map(([u]) => u)).toContain('/api/teams/t2/members')
   })
 
   it('deactivates a member with DELETE and then refetches the list', async () => {
@@ -48,7 +60,7 @@ describe('TeamPage', () => {
       return json(list)
     })
     vi.stubGlobal('fetch', fetchMock)
-    render(<TeamPage />)
+    render(<MemoryRouter><TeamPage /></MemoryRouter>)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Desativar Ana Silva' }))
 
@@ -76,7 +88,7 @@ describe('TeamPage', () => {
       return json(list)
     })
     vi.stubGlobal('fetch', fetchMock)
-    render(<TeamPage />)
+    render(<MemoryRouter><TeamPage /></MemoryRouter>)
 
     const button = await screen.findByRole('button', { name: 'Desativar Ana Silva' })
     fireEvent.click(button)
@@ -96,7 +108,7 @@ describe('TeamPage', () => {
       return json(list)
     })
     vi.stubGlobal('fetch', fetchMock)
-    render(<TeamPage />)
+    render(<MemoryRouter><TeamPage /></MemoryRouter>)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Adicionar membro' }))
     fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Joana Lopes' } })
@@ -130,7 +142,7 @@ describe('TeamPage', () => {
       return json(members())
     })
     vi.stubGlobal('fetch', fetchMock)
-    render(<TeamPage />)
+    render(<MemoryRouter><TeamPage /></MemoryRouter>)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Adicionar membro' }))
     fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Joana Lopes' } })
@@ -151,7 +163,7 @@ describe('TeamPage', () => {
       }
       return json(list)
     }))
-    render(<TeamPage />)
+    render(<MemoryRouter><TeamPage /></MemoryRouter>)
 
     const input = await screen.findByRole('spinbutton', { name: 'FTE (%) Ana Silva' })
     fireEvent.change(input, { target: { value: '50' } })
@@ -167,7 +179,7 @@ describe('TeamPage', () => {
       return json(members())
     })
     vi.stubGlobal('fetch', fetchMock)
-    render(<TeamPage />)
+    render(<MemoryRouter><TeamPage /></MemoryRouter>)
 
     const table = await screen.findByRole('table')
     fireEvent.click(within(table).getByRole('checkbox', { name: 'Faz turnos Ana Silva' }))
@@ -189,7 +201,7 @@ describe('TeamPage', () => {
       return json(members())
     })
     vi.stubGlobal('fetch', fetchMock)
-    render(<TeamPage />)
+    render(<MemoryRouter><TeamPage /></MemoryRouter>)
 
     const input = await screen.findByRole('spinbutton', { name: 'FTE (%) Ana Silva' })
     fireEvent.change(input, { target: { value: '50' } })
@@ -208,7 +220,7 @@ describe('TeamPage', () => {
       return json(members())
     })
     vi.stubGlobal('fetch', fetchMock)
-    render(<TeamPage />)
+    render(<MemoryRouter><TeamPage /></MemoryRouter>)
 
     const input = await screen.findByRole('spinbutton', { name: 'FTE (%) Ana Silva' }) as HTMLInputElement
     fireEvent.change(input, { target: { value: '0' } })
@@ -227,7 +239,7 @@ describe('TeamPage', () => {
       return json(list)
     })
     vi.stubGlobal('fetch', fetchMock)
-    render(<TeamPage isAdmin />)
+    render(<MemoryRouter><TeamPage isAdmin /></MemoryRouter>)
 
     const select = await screen.findByRole('combobox', { name: 'Função Ana Silva' })
     fireEvent.change(select, { target: { value: 'MANAGER' } })
@@ -244,7 +256,7 @@ describe('TeamPage', () => {
       if (init?.method === 'POST') return json({}, 409)
       return json(members())
     }))
-    render(<TeamPage />)
+    render(<MemoryRouter><TeamPage /></MemoryRouter>)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Adicionar membro' }))
     fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Joana Lopes' } })
@@ -257,7 +269,7 @@ describe('TeamPage', () => {
 
   it('shows an alert when loading fails', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => json({}, 500)))
-    render(<TeamPage />)
+    render(<MemoryRouter><TeamPage /></MemoryRouter>)
 
     expect((await screen.findByRole('alert')).textContent).toContain('Não foi possível carregar')
     expect(screen.queryByRole('table')).toBeNull()
@@ -274,7 +286,7 @@ describe('TeamPage', () => {
       return json([])
     })
     vi.stubGlobal('fetch', fetchMock)
-    render(<TeamPage isAdmin />)
+    render(<MemoryRouter><TeamPage isAdmin /></MemoryRouter>)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Nova equipa' }))
     fireEvent.change(screen.getByLabelText('Nome da equipa'), { target: { value: 'Cardiologia' } })
@@ -299,7 +311,7 @@ describe('TeamPage', () => {
       if (url === '/api/teams' && init?.method === 'POST') return json({}, 404)
       return json([])
     }))
-    render(<TeamPage isAdmin />)
+    render(<MemoryRouter><TeamPage isAdmin /></MemoryRouter>)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Nova equipa' }))
     fireEvent.change(screen.getByLabelText('Nome da equipa'), { target: { value: 'Cardiologia' } })
@@ -311,12 +323,25 @@ describe('TeamPage', () => {
     expect((screen.getByLabelText('Nome da equipa') as HTMLInputElement).value).toBe('Cardiologia')
   })
 
+  it('marks only the signed-in user row with a Você pill', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (url === '/api/teams') return json(teams)
+      return json(members())
+    }))
+    render(<MemoryRouter><TeamPage meId="u1" /></MemoryRouter>)
+
+    const table = await screen.findByRole('table')
+    const rows = within(table).getAllByRole('row')
+    expect(within(rows[1]).getByText('Você')).toBeTruthy()
+    expect(within(rows[2]).queryByText('Você')).toBeNull()
+  })
+
   it('hides the toggle on the signed-in user row only', async () => {
     vi.stubGlobal('fetch', vi.fn(async (url: string) => {
       if (url === '/api/teams') return json(teams)
       return json(members())
     }))
-    render(<TeamPage meId="u1" />)
+    render(<MemoryRouter><TeamPage meId="u1" /></MemoryRouter>)
 
     const table = await screen.findByRole('table')
     const rows = within(table).getAllByRole('row')
@@ -338,7 +363,7 @@ describe('TeamPage', () => {
       return json([])
     })
     vi.stubGlobal('fetch', fetchMock)
-    render(<TeamPage isAdmin />)
+    render(<MemoryRouter><TeamPage isAdmin /></MemoryRouter>)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Nova equipa' }))
     fireEvent.change(screen.getByLabelText('Nome da equipa'), { target: { value: 'Cardiologia' } })
@@ -364,7 +389,7 @@ describe('TeamPage', () => {
       return json(members())
     })
     vi.stubGlobal('fetch', fetchMock)
-    render(<TeamPage />)
+    render(<MemoryRouter><TeamPage /></MemoryRouter>)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Adicionar membro' }))
     fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Joana Lopes' } })
@@ -391,7 +416,7 @@ describe('TeamPage', () => {
       return json(members())
     })
     vi.stubGlobal('fetch', fetchMock)
-    render(<TeamPage />)
+    render(<MemoryRouter><TeamPage /></MemoryRouter>)
 
     const table = await screen.findByRole('table')
     const checkbox = within(table).getByRole('checkbox', { name: 'Faz turnos Ana Silva' })
@@ -406,7 +431,7 @@ describe('TeamPage', () => {
 
   it('hides the create-team button without isAdmin', async () => {
     vi.stubGlobal('fetch', vi.fn(async (url: string) => (url === '/api/teams' ? json(teams) : json(members()))))
-    render(<TeamPage />)
+    render(<MemoryRouter><TeamPage /></MemoryRouter>)
 
     await screen.findByRole('table')
     expect(screen.queryByRole('button', { name: 'Nova equipa' })).toBeNull()
@@ -414,14 +439,14 @@ describe('TeamPage', () => {
 
   it('shows the create-team button with isAdmin', async () => {
     vi.stubGlobal('fetch', vi.fn(async (url: string) => (url === '/api/teams' ? json(teams) : json(members()))))
-    render(<TeamPage isAdmin />)
+    render(<MemoryRouter><TeamPage isAdmin /></MemoryRouter>)
 
     expect(await screen.findByRole('button', { name: 'Nova equipa' })).toBeTruthy()
   })
 
   it('disables the MANAGER option in the add row without isAdmin', async () => {
     vi.stubGlobal('fetch', vi.fn(async (url: string) => (url === '/api/teams' ? json(teams) : json(members()))))
-    render(<TeamPage />)
+    render(<MemoryRouter><TeamPage /></MemoryRouter>)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Adicionar membro' }))
     const addRole = screen.getByRole('combobox', { name: 'Função' }) as HTMLSelectElement

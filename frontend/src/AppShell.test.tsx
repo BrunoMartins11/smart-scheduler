@@ -71,6 +71,36 @@ describe('AppShell', () => {
     await waitFor(() => expect(screen.getByTestId('location').textContent).toBe('/escala'))
   })
 
+  it('keeps the ?team= query on the nav links', async () => {
+    stubMe(new Response(JSON.stringify({ id: '1', email: 'ana@example.pt', displayName: 'Ana Silva', isCompanyAdmin: false }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }))
+    render(
+      <MemoryRouter initialEntries={['/escala?team=t2']}>
+        <AppShell />
+      </MemoryRouter>,
+    )
+
+    expect((await screen.findByRole('link', { name: 'Equipa' })).getAttribute('href')).toBe('/equipa?team=t2')
+    expect(screen.getByRole('link', { name: 'Regras' }).getAttribute('href')).toBe('/regras?team=t2')
+  })
+
+  it('marks the nav link for the current route with aria-current', async () => {
+    stubMe(new Response(JSON.stringify({ id: '1', email: 'ana@example.pt', displayName: 'Ana Silva', isCompanyAdmin: false }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }))
+    render(
+      <MemoryRouter initialEntries={['/equipa']}>
+        <AppShell />
+      </MemoryRouter>,
+    )
+
+    expect((await screen.findByRole('link', { name: 'Equipa' })).getAttribute('aria-current')).toBe('page')
+    expect(screen.getByRole('link', { name: 'Regras' }).getAttribute('aria-current')).toBeNull()
+  })
+
   it('renders no page for the team route when signed out', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 401 }))
     vi.stubGlobal('fetch', fetchMock)
