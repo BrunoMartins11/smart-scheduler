@@ -22,6 +22,9 @@ export const muted = 'text-slate-600'
 export const alertText = 'text-red-700'
 
 const pillBase = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold'
+// Shift type pills also carry an icon, so the type never relies on colour alone.
+export const pillAmber = `${pillBase} gap-1 bg-amber-100 text-amber-900`
+export const pillIndigo = `${pillBase} gap-1 bg-indigo-100 text-indigo-900`
 export const pillGreen = `${pillBase} bg-green-100 text-green-800`
 export const pillSlate = `${pillBase} bg-slate-100 text-slate-700`
 export const pillCyan = `${pillBase} bg-cyan-50 text-cyan-800`

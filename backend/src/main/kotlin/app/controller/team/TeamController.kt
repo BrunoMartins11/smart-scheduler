@@ -1,6 +1,7 @@
 package app.controller.team
 
 import app.controller.currentUser
+import app.controller.uuidParam
 import app.model.TeamRules
 import app.service.auth.AuthService
 import app.service.team.InviteResult
@@ -48,9 +49,6 @@ data class UpdateMemberRequest(
     val role: String? = null,
     val active: Boolean? = null,
 )
-
-private fun ApplicationCall.uuidParam(name: String): UUID? =
-    parameters[name]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
 
 private suspend fun ApplicationCall.respondMember(result: MemberResult) = when (result) {
     MemberResult.Ok -> respond(HttpStatusCode.NoContent)

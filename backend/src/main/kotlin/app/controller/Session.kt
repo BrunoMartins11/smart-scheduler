@@ -11,6 +11,10 @@ import io.ktor.server.sessions.get
 import io.ktor.server.sessions.sessions
 import java.util.UUID
 
+// Null when the path segment is not a UUID; the routes answer 404 for it.
+fun ApplicationCall.uuidParam(name: String): UUID? =
+    parameters[name]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+
 // Shared by every protected route. Responds 401 and clears the session when there is no usable user.
 suspend fun ApplicationCall.currentUser(auth: AuthService): CurrentUser? {
     val user = sessions.get<UserSession>()?.let { auth.currentUser(UUID.fromString(it.userId)) }

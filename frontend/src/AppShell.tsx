@@ -2,6 +2,7 @@ import { LogIn, LogOut } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router'
 import { RulesPage } from './RulesPage'
+import { ShiftsPage } from './ShiftsPage'
 import { TeamPage } from './TeamPage'
 import { t, type MessageKey } from './i18n/messages'
 import { btnPrimary, btnSecondary, card, focusRing, muted, alertText } from './ui'
@@ -106,7 +107,7 @@ export function AppShell() {
               path="/equipa"
               element={<TeamPage meId={session.me.id} isAdmin={session.me.isCompanyAdmin} />}
             />
-            <Route path="/turnos" element={<ComingSoon line="soon.shifts" />} />
+            <Route path="/turnos" element={<ShiftsPage />} />
             <Route path="/regras" element={<RulesPage />} />
             <Route path="*" element={<></>} />
           </Routes>

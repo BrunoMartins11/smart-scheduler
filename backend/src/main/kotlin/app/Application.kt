@@ -1,5 +1,6 @@
 package app
 
+import app.controller.shift.shiftTemplateRoutes
 import app.controller.team.teamRoutes
 import app.controller.auth.OAUTH_STATE_COOKIE
 import app.controller.auth.UserSession
@@ -7,8 +8,10 @@ import app.controller.auth.authRoutes
 import app.controller.user.meRoutes
 import app.persistence.connectDatabase
 import app.persistence.migrate
+import app.persistence.shift.ShiftTemplateRepository
 import app.persistence.team.TeamRepository
 import app.persistence.user.UserRepository
+import app.service.shift.ShiftTemplateService
 import app.service.team.TeamService
 import app.service.auth.AuthService
 import com.auth0.jwk.JwkProviderBuilder
@@ -52,6 +55,7 @@ fun Application.module() {
 
     val auth = AuthService(UserRepository(db))
     val teams = TeamService(TeamRepository(db))
+    val shiftTemplates = ShiftTemplateService(ShiftTemplateRepository(db), teams)
 
     install(Sessions) {
         cookie<UserSession>("sid") {
@@ -105,5 +109,6 @@ fun Application.module() {
         authRoutes(auth, publicUrl, clientId, secure, jwks, issuer)
         meRoutes(auth)
         teamRoutes(auth, teams)
+        shiftTemplateRoutes(auth, shiftTemplates)
     }
 }
