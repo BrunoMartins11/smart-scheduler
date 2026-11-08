@@ -227,7 +227,7 @@ describe('TeamPage', () => {
       return json(list)
     })
     vi.stubGlobal('fetch', fetchMock)
-    render(<TeamPage />)
+    render(<TeamPage isAdmin />)
 
     const select = await screen.findByRole('combobox', { name: 'Função Ana Silva' })
     fireEvent.change(select, { target: { value: 'MANAGER' } })
@@ -274,7 +274,7 @@ describe('TeamPage', () => {
       return json([])
     })
     vi.stubGlobal('fetch', fetchMock)
-    render(<TeamPage />)
+    render(<TeamPage isAdmin />)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Nova equipa' }))
     fireEvent.change(screen.getByLabelText('Nome da equipa'), { target: { value: 'Cardiologia' } })
@@ -299,7 +299,7 @@ describe('TeamPage', () => {
       if (url === '/api/teams' && init?.method === 'POST') return json({}, 404)
       return json([])
     }))
-    render(<TeamPage />)
+    render(<TeamPage isAdmin />)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Nova equipa' }))
     fireEvent.change(screen.getByLabelText('Nome da equipa'), { target: { value: 'Cardiologia' } })
@@ -338,7 +338,7 @@ describe('TeamPage', () => {
       return json([])
     })
     vi.stubGlobal('fetch', fetchMock)
-    render(<TeamPage />)
+    render(<TeamPage isAdmin />)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Nova equipa' }))
     fireEvent.change(screen.getByLabelText('Nome da equipa'), { target: { value: 'Cardiologia' } })
@@ -402,5 +402,29 @@ describe('TeamPage', () => {
     release()
     await waitFor(() => expect(fetchMock.mock.calls).toHaveLength(4))
     expect(fetchMock.mock.calls.filter(([, i]) => i?.method === 'PATCH')).toHaveLength(1)
+  })
+
+  it('hides the create-team button without isAdmin', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => (url === '/api/teams' ? json(teams) : json(members()))))
+    render(<TeamPage />)
+
+    await screen.findByRole('table')
+    expect(screen.queryByRole('button', { name: 'Nova equipa' })).toBeNull()
+  })
+
+  it('shows the create-team button with isAdmin', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => (url === '/api/teams' ? json(teams) : json(members()))))
+    render(<TeamPage isAdmin />)
+
+    expect(await screen.findByRole('button', { name: 'Nova equipa' })).toBeTruthy()
+  })
+
+  it('disables the MANAGER option in the add row without isAdmin', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => (url === '/api/teams' ? json(teams) : json(members()))))
+    render(<TeamPage />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Adicionar membro' }))
+    const addRole = screen.getByRole('combobox', { name: 'Função' }) as HTMLSelectElement
+    expect((addRole.querySelector('option[value="MANAGER"]') as HTMLOptionElement).disabled).toBe(true)
   })
 })

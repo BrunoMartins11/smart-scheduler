@@ -24,7 +24,7 @@ type Member = {
 // Unknown roles fall back to the raw backend value.
 const roleLabel = (role: string) => (`role.${role}` in messages ? t(`role.${role}` as MessageKey) : role)
 
-export function TeamPage({ meId }: { meId?: string }) {
+export function TeamPage({ meId, isAdmin }: { meId?: string; isAdmin?: boolean }) {
   const [teams, setTeams] = useState<Team[] | null>(null)
   const [teamId, setTeamId] = useState('')
   const [members, setMembers] = useState<Member[] | null>(null)
@@ -162,13 +162,15 @@ export function TeamPage({ meId }: { meId?: string }) {
     <main className="p-4 space-y-4">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-bold">{t('team.heading')}</h1>
-        <button type="button" className={btnText} disabled={busy} onClick={() => setCreating(!creating)}>
-          <Plus className="size-4" aria-hidden="true" />
-          {t('team.create.open')}
-        </button>
+        {isAdmin && (
+          <button type="button" className={btnText} disabled={busy} onClick={() => setCreating(!creating)}>
+            <Plus className="size-4" aria-hidden="true" />
+            {t('team.create.open')}
+          </button>
+        )}
       </div>
 
-      {creating && (
+      {isAdmin && creating && (
         <form onSubmit={createTeam} className="flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1">
             <span className="font-bold">{t('team.create.name')}</span>
@@ -250,11 +252,11 @@ export function TeamPage({ meId }: { meId?: string }) {
                           className={select}
                           aria-label={`${t('team.col.role')} ${m.displayName}`}
                           value={m.role}
-                          disabled={busy || !m.active}
+                          disabled={busy || !m.active || (!isAdmin && m.role === 'MANAGER')}
                           onChange={(e) => patchMember(m, { role: e.target.value })}
                         >
                           <option value="MEMBER">{t('role.MEMBER')}</option>
-                          <option value="MANAGER">{t('role.MANAGER')}</option>
+                          <option value="MANAGER" disabled={!isAdmin && m.role !== 'MANAGER'}>{t('role.MANAGER')}</option>
                           {m.role !== 'MEMBER' && m.role !== 'MANAGER' && <option value={m.role}>{roleLabel(m.role)}</option>}
                         </select>
                       </td>
@@ -316,7 +318,7 @@ export function TeamPage({ meId }: { meId?: string }) {
                       <td className="px-3 py-2">
                         <select form="add-member" className={select} aria-label={t('team.add.role')} value={role} onChange={(e) => setRole(e.target.value)}>
                           <option value="MEMBER">{t('role.MEMBER')}</option>
-                          <option value="MANAGER">{t('role.MANAGER')}</option>
+                          <option value="MANAGER" disabled={!isAdmin}>{t('role.MANAGER')}</option>
                         </select>
                       </td>
                       <td className="px-3 py-2">

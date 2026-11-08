@@ -18,7 +18,7 @@ const navItems = [
   { to: '/regras', label: t('nav.rules') },
 ]
 
-type Me = { id: string; email: string; displayName: string }
+type Me = { id: string; email: string; displayName: string; isCompanyAdmin: boolean }
 type Session =
   | { status: 'loading' }
   | { status: 'anonymous' }
@@ -86,11 +86,16 @@ export function AppShell() {
         </div>
       </header>
 
-      <Routes>
-        <Route path="/" element={<Navigate to="/escala" replace />} />
-        <Route path="/equipa" element={<TeamPage meId={session.status === 'signedIn' ? session.me.id : undefined} />} />
-        <Route path="*" element={<main className="p-4" />} />
-      </Routes>
+      {session.status === 'signedIn' && (
+        <Routes>
+          <Route path="/" element={<Navigate to="/escala" replace />} />
+          <Route
+            path="/equipa"
+            element={<TeamPage meId={session.me.id} isAdmin={session.me.isCompanyAdmin} />}
+          />
+          <Route path="*" element={<main className="p-4" />} />
+        </Routes>
+      )}
     </div>
   )
 }
