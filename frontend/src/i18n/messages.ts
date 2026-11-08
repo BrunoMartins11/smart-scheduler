@@ -36,6 +36,11 @@ export const messages = {
   'team.add.cancel': 'Cancelar',
   'team.add.conflict': 'Este email já está em uso nesta empresa.',
   'team.add.error': 'Não foi possível adicionar o membro. Tente novamente.',
+  'team.create.open': 'Nova equipa',
+  'team.create.name': 'Nome da equipa',
+  'team.create.save': 'Criar',
+  'team.create.cancel': 'Cancelar',
+  'team.create.error': 'Não foi possível criar a equipa. Só um administrador da empresa pode criar equipas.',
   'role.MANAGER': 'Gestor',
   'role.MEMBER': 'Membro',
 } as const

@@ -1,10 +1,12 @@
-import { Check, UserRoundCheck, UserRoundPlus, UserRoundX, X } from 'lucide-react'
+import { Check, Plus, UserRoundCheck, UserRoundPlus, UserRoundX, X } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { ApiError, api } from './api'
 import { messages, t, type MessageKey } from './i18n/messages'
 
 const btnIcon =
   'size-10 inline-flex items-center justify-center rounded-md border border-slate-300 bg-white hover:bg-slate-50 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-700'
+const btnText =
+  'h-10 px-3 inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white hover:bg-slate-50 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-700'
 const select =
   'h-10 px-3 rounded-md border border-slate-300 bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-700'
 
@@ -36,6 +38,9 @@ export function TeamPage({ meId }: { meId?: string }) {
   const [worksShifts, setWorksShifts] = useState(true)
   const [addError, setAddError] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [teamName, setTeamName] = useState('')
+  const [createError, setCreateError] = useState<string | null>(null)
 
   useEffect(() => {
     let ignore = false
@@ -122,9 +127,66 @@ export function TeamPage({ meId }: { meId?: string }) {
     }
   }
 
+  function resetCreate() {
+    setCreating(false)
+    setTeamName('')
+    setCreateError(null)
+  }
+
+  // Refetches the team list and selects the new team by the id the POST returned.
+  async function createTeam(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (busy) return
+    setBusy(true)
+    setCreateError(null)
+    let id = ''
+    try {
+      id = (await api<{ id: string }>('/api/teams', { method: 'POST', body: { name: teamName } })).id
+    } catch {
+      setCreateError(t('team.create.error'))
+    }
+    if (id) {
+      resetCreate()
+      try {
+        setTeams(await api<Team[]>('/api/teams'))
+        setMembers(null)
+        setTeamId(id)
+      } catch {
+        setError(true)
+      }
+    }
+    setBusy(false)
+  }
+
   return (
     <main className="p-4 space-y-4">
-      <h1 className="text-xl font-bold">{t('team.heading')}</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-xl font-bold">{t('team.heading')}</h1>
+        <button type="button" className={btnText} disabled={busy} onClick={() => setCreating(!creating)}>
+          <Plus className="size-4" aria-hidden="true" />
+          {t('team.create.open')}
+        </button>
+      </div>
+
+      {creating && (
+        <form onSubmit={createTeam} className="flex flex-wrap items-end gap-3">
+          <label className="flex flex-col gap-1">
+            <span className="font-bold">{t('team.create.name')}</span>
+            <input className={select} required value={teamName} onChange={(e) => setTeamName(e.target.value)} />
+          </label>
+          <button type="submit" className={btnText} disabled={busy}>
+            {t('team.create.save')}
+          </button>
+          <button type="button" className={btnText} disabled={busy} onClick={resetCreate}>
+            {t('team.create.cancel')}
+          </button>
+        </form>
+      )}
+      {createError && (
+        <p role="alert" className="text-red-700">
+          {createError}
+        </p>
+      )}
 
       {error && (
         <p role="alert" className="text-red-700">

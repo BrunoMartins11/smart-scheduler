@@ -263,6 +263,54 @@ describe('TeamPage', () => {
     expect(screen.queryByRole('table')).toBeNull()
   })
 
+  it('creates the first team from the header and selects it', async () => {
+    let created = false
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === '/api/teams' && init?.method === 'POST') {
+        created = true
+        return json({ id: 't2' }, 201)
+      }
+      if (url === '/api/teams') return json(created ? [{ id: 't2', name: 'Cardiologia' }] : [])
+      return json([])
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<TeamPage />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Nova equipa' }))
+    fireEvent.change(screen.getByLabelText('Nome da equipa'), { target: { value: 'Cardiologia' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Criar' }))
+
+    await waitFor(() => expect((screen.getByLabelText('Escolher equipa') as HTMLSelectElement).value).toBe('t2'))
+    expect(screen.queryByLabelText('Nome da equipa')).toBeNull()
+    const posts = fetchMock.mock.calls.filter(([, i]) => i?.method === 'POST')
+    expect(posts).toHaveLength(1)
+    expect(posts[0][0]).toBe('/api/teams')
+    expect(JSON.parse(posts[0][1]!.body as string)).toEqual({ name: 'Cardiologia' })
+    expect(fetchMock.mock.calls.map(([u, i]) => [u, i?.method ?? 'GET'])).toEqual([
+      ['/api/teams', 'GET'],
+      ['/api/teams', 'POST'],
+      ['/api/teams', 'GET'],
+      ['/api/teams/t2/members', 'GET'],
+    ])
+  })
+
+  it('keeps the team form open and shows the alert when creating fails with 404', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === '/api/teams' && init?.method === 'POST') return json({}, 404)
+      return json([])
+    }))
+    render(<TeamPage />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Nova equipa' }))
+    fireEvent.change(screen.getByLabelText('Nome da equipa'), { target: { value: 'Cardiologia' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Criar' }))
+
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'Não foi possível criar a equipa. Só um administrador da empresa pode criar equipas.',
+    )
+    expect((screen.getByLabelText('Nome da equipa') as HTMLInputElement).value).toBe('Cardiologia')
+  })
+
   it('hides the toggle on the signed-in user row only', async () => {
     vi.stubGlobal('fetch', vi.fn(async (url: string) => {
       if (url === '/api/teams') return json(teams)
@@ -274,5 +322,85 @@ describe('TeamPage', () => {
     const rows = within(table).getAllByRole('row')
     expect(within(rows[1]).queryByRole('button')).toBeNull()
     expect(within(rows[2]).getByRole('button', { name: 'Reativar Rui Costa' })).toBeTruthy()
+  })
+
+  it('sends one POST when the create button is clicked twice quickly', async () => {
+    let created = false
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === '/api/teams' && init?.method === 'POST') {
+        await gate
+        created = true
+        return json({ id: 't2' }, 201)
+      }
+      if (url === '/api/teams') return json(created ? [{ id: 't2', name: 'Cardiologia' }] : [])
+      return json([])
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<TeamPage />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Nova equipa' }))
+    fireEvent.change(screen.getByLabelText('Nome da equipa'), { target: { value: 'Cardiologia' } })
+    const create = screen.getByRole('button', { name: 'Criar' })
+    fireEvent.click(create)
+    fireEvent.click(create)
+    expect((create as HTMLButtonElement).disabled).toBe(true)
+
+    release()
+    await waitFor(() => expect((screen.getByLabelText('Escolher equipa') as HTMLSelectElement).value).toBe('t2'))
+    expect(fetchMock.mock.calls.filter(([, i]) => i?.method === 'POST')).toHaveLength(1)
+  })
+
+  it('sends one POST when the add-row save button is clicked twice quickly', async () => {
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === '/api/teams') return json(teams)
+      if (init?.method === 'POST') {
+        await gate
+        return json({ userId: 'u3' }, 201)
+      }
+      return json(members())
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<TeamPage />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Adicionar membro' }))
+    fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Joana Lopes' } })
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'joana@example.pt' } })
+    const save = screen.getByRole('button', { name: 'Guardar' })
+    fireEvent.click(save)
+    fireEvent.click(save)
+    expect((save as HTMLButtonElement).disabled).toBe(true)
+
+    release()
+    await waitFor(() => expect(screen.queryByLabelText('Nome')).toBeNull())
+    expect(fetchMock.mock.calls.filter(([, i]) => i?.method === 'POST').map(([u]) => u)).toEqual(['/api/teams/t1/invites'])
+  })
+
+  it('sends one PATCH when the works-shifts box is clicked twice quickly', async () => {
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === '/api/teams') return json(teams)
+      if (init?.method === 'PATCH') {
+        await gate
+        return new Response(null, { status: 204 })
+      }
+      return json(members())
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<TeamPage />)
+
+    const table = await screen.findByRole('table')
+    const checkbox = within(table).getByRole('checkbox', { name: 'Faz turnos Ana Silva' })
+    fireEvent.click(checkbox)
+    fireEvent.click(checkbox)
+    expect((checkbox as HTMLInputElement).disabled).toBe(true)
+
+    release()
+    await waitFor(() => expect(fetchMock.mock.calls).toHaveLength(4))
+    expect(fetchMock.mock.calls.filter(([, i]) => i?.method === 'PATCH')).toHaveLength(1)
   })
 })
