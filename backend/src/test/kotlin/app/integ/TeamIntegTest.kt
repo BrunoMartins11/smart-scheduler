@@ -1,4 +1,4 @@
-package app.controller.team
+package app.integ
 
 import app.MemberState
 import app.addMember
@@ -8,23 +8,13 @@ import app.insertTeam
 import app.memberCount
 import app.memberState
 import app.routeTest
-import app.sessionCookie
 import app.teamCompany
+import app.testDs
+import app.callAs
 import app.uniq
-import io.ktor.client.request.delete
-import io.ktor.client.request.get
-import io.ktor.client.request.header
-import io.ktor.client.request.patch
-import io.ktor.client.request.post
-import io.ktor.client.request.put
-import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
-import io.ktor.server.testing.ApplicationTestBuilder
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -38,14 +28,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
-class TeamControllerTest {
-
-    private suspend fun ApplicationTestBuilder.postAs(userId: UUID, path: String, body: String): HttpResponse =
-        client.post(path) {
-            header(HttpHeaders.Cookie, sessionCookie(userId))
-            contentType(ContentType.Application.Json)
-            setBody(body)
-        }
+class TeamIntegTest {
 
     private fun inviteBody(email: String, role: String = "MEMBER") =
         """{"email":"$email","displayName":"Ana","role":"$role"}"""
@@ -57,7 +40,7 @@ class TeamControllerTest {
         val company = insertCompany()
         val admin = insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true)
 
-        val response = postAs(admin, "/api/teams", """{"name":"Urgência"}""")
+        val response = callAs(admin, "POST", "/api/teams", """{"name":"Urgência"}""")
 
         assertEquals(HttpStatusCode.Created, response.status)
         val id = UUID.fromString(Json.parseToJsonElement(response.bodyAsText()).jsonObject["id"]!!.jsonPrimitive.content)
@@ -69,21 +52,21 @@ class TeamControllerTest {
         val company = insertCompany()
         val member = insertAccount("member-${uniq()}@x.pt", companyId = company)
 
-        assertEquals(HttpStatusCode.NotFound, postAs(member, "/api/teams", """{"name":"Blocos"}""").status)
+        assertEquals(HttpStatusCode.NotFound, callAs(member, "POST", "/api/teams", """{"name":"Blocos"}""").status)
     }
 
     @Test
     fun blankTeamNameGets400() = routeTest {
         val admin = insertAccount("admin-${uniq()}@x.pt", companyId = insertCompany(), admin = true)
 
-        assertEquals(HttpStatusCode.BadRequest, postAs(admin, "/api/teams", """{"name":"   "}""").status)
+        assertEquals(HttpStatusCode.BadRequest, callAs(admin, "POST", "/api/teams", """{"name":"   "}""").status)
     }
 
     @Test
     fun malformedTeamJsonGets400() = routeTest {
         val admin = insertAccount("admin-${uniq()}@x.pt", companyId = insertCompany(), admin = true)
 
-        assertEquals(HttpStatusCode.BadRequest, postAs(admin, "/api/teams", "{not json").status)
+        assertEquals(HttpStatusCode.BadRequest, callAs(admin, "POST", "/api/teams", "{not json").status)
     }
 
     // POST /api/teams/{teamId}/invites
@@ -95,7 +78,7 @@ class TeamControllerTest {
         val manager = insertAccount("mgr-${uniq()}@x.pt", companyId = company)
         addMember(team, manager, "MANAGER")
 
-        val response = postAs(manager, "/api/teams/$team/invites", inviteBody("new-${uniq()}@x.pt"))
+        val response = callAs(manager, "POST", "/api/teams/$team/invites", inviteBody("new-${uniq()}@x.pt"))
 
         assertEquals(HttpStatusCode.Created, response.status)
         assertEquals(2, memberCount(team))
@@ -106,7 +89,7 @@ class TeamControllerTest {
         val admin = insertAccount("admin-${uniq()}@x.pt", companyId = insertCompany(), admin = true)
         val otherTeam = insertTeam(insertCompany())
 
-        val response = postAs(admin, "/api/teams/$otherTeam/invites", inviteBody("new-${uniq()}@x.pt"))
+        val response = callAs(admin, "POST", "/api/teams/$otherTeam/invites", inviteBody("new-${uniq()}@x.pt"))
 
         assertEquals(HttpStatusCode.NotFound, response.status)
         assertEquals(0, memberCount(otherTeam))
@@ -116,7 +99,7 @@ class TeamControllerTest {
     fun inviteToMalformedTeamIdGets404() = routeTest {
         val admin = insertAccount("admin-${uniq()}@x.pt", companyId = insertCompany(), admin = true)
 
-        val response = postAs(admin, "/api/teams/not-a-uuid/invites", inviteBody("new-${uniq()}@x.pt"))
+        val response = callAs(admin, "POST", "/api/teams/not-a-uuid/invites", inviteBody("new-${uniq()}@x.pt"))
 
         assertEquals(HttpStatusCode.NotFound, response.status)
     }
@@ -129,7 +112,7 @@ class TeamControllerTest {
         val email = "dup-${uniq()}@x.pt"
         insertAccount(email, companyId = company)
 
-        val response = postAs(admin, "/api/teams/$team/invites", inviteBody(email.uppercase()))
+        val response = callAs(admin, "POST", "/api/teams/$team/invites", inviteBody(email.uppercase()))
 
         assertEquals(HttpStatusCode.Conflict, response.status)
         assertEquals(0, memberCount(team))
@@ -143,7 +126,7 @@ class TeamControllerTest {
         val email = "shared-${uniq()}@x.pt"
         insertAccount(email, companyId = insertCompany())
 
-        val response = postAs(admin, "/api/teams/$team/invites", inviteBody(email))
+        val response = callAs(admin, "POST", "/api/teams/$team/invites", inviteBody(email))
 
         assertEquals(HttpStatusCode.Created, response.status)
         assertEquals(1, memberCount(team))
@@ -155,7 +138,7 @@ class TeamControllerTest {
         val team = insertTeam(company)
         val admin = insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true)
 
-        val response = postAs(admin, "/api/teams/$team/invites", inviteBody("new-${uniq()}@x.pt", role = "ADMIN"))
+        val response = callAs(admin, "POST", "/api/teams/$team/invites", inviteBody("new-${uniq()}@x.pt", role = "ADMIN"))
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
         assertEquals(0, memberCount(team))
@@ -167,28 +150,15 @@ class TeamControllerTest {
         val team = insertTeam(company)
         val admin = insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true)
 
-        assertEquals(HttpStatusCode.BadRequest, postAs(admin, "/api/teams/$team/invites", "{not json").status)
+        assertEquals(HttpStatusCode.BadRequest, callAs(admin, "POST", "/api/teams/$team/invites", "{not json").status)
         // Missing required displayName.
         assertEquals(
             HttpStatusCode.BadRequest,
-            postAs(admin, "/api/teams/$team/invites", """{"email":"x@x.pt","role":"MEMBER"}""").status,
+            callAs(admin, "POST", "/api/teams/$team/invites", """{"email":"x@x.pt","role":"MEMBER"}""").status,
         )
     }
 
     // GET /api/teams
-
-    private suspend fun ApplicationTestBuilder.getAs(userId: UUID, path: String): HttpResponse =
-        client.get(path) { header(HttpHeaders.Cookie, sessionCookie(userId)) }
-
-    private suspend fun ApplicationTestBuilder.patchAs(userId: UUID, path: String, body: String): HttpResponse =
-        client.patch(path) {
-            header(HttpHeaders.Cookie, sessionCookie(userId))
-            contentType(ContentType.Application.Json)
-            setBody(body)
-        }
-
-    private suspend fun ApplicationTestBuilder.deleteAs(userId: UUID, path: String): HttpResponse =
-        client.delete(path) { header(HttpHeaders.Cookie, sessionCookie(userId)) }
 
     private suspend fun HttpResponse.jsonArray(): JsonArray = Json.parseToJsonElement(bodyAsText()).jsonArray
 
@@ -205,11 +175,11 @@ class TeamControllerTest {
         addMember(mine, memberId, "MEMBER")
         addMember(inactive, memberId, "MEMBER", active = false)
 
-        val adminIds = getAs(admin, "/api/teams").jsonArray().ids()
+        val adminIds = callAs(admin, "GET", "/api/teams").jsonArray().ids()
         assertTrue(mine.toString() in adminIds && inactive.toString() in adminIds)
         assertFalse(foreign.toString() in adminIds)
 
-        val response = getAs(memberId, "/api/teams")
+        val response = callAs(memberId, "GET", "/api/teams")
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals(setOf(mine.toString()), response.jsonArray().ids())
     }
@@ -226,7 +196,7 @@ class TeamControllerTest {
         addMember(team, insertAccount("gone-${uniq()}@x.pt", companyId = company), "MEMBER", active = false)
 
         for (viewer in listOf(admin, managerId)) {
-            val response = getAs(viewer, "/api/teams/$team/members")
+            val response = callAs(viewer, "GET", "/api/teams/$team/members")
             assertEquals(HttpStatusCode.OK, response.status)
             val members = response.jsonArray()
             assertEquals(2, members.size)
@@ -246,10 +216,10 @@ class TeamControllerTest {
         addMember(team, memberId, "MEMBER")
         val foreignAdmin = insertAccount("admin-${uniq()}@x.pt", companyId = insertCompany(), admin = true)
 
-        assertEquals(HttpStatusCode.NotFound, getAs(managerId, "/api/teams/$team/members").status)
-        assertEquals(HttpStatusCode.NotFound, getAs(memberId, "/api/teams/$team/members").status)
-        assertEquals(HttpStatusCode.NotFound, getAs(foreignAdmin, "/api/teams/$team/members").status)
-        assertEquals(HttpStatusCode.NotFound, getAs(memberId, "/api/teams/not-a-uuid/members").status)
+        assertEquals(HttpStatusCode.NotFound, callAs(managerId, "GET", "/api/teams/$team/members").status)
+        assertEquals(HttpStatusCode.NotFound, callAs(memberId, "GET", "/api/teams/$team/members").status)
+        assertEquals(HttpStatusCode.NotFound, callAs(foreignAdmin, "GET", "/api/teams/$team/members").status)
+        assertEquals(HttpStatusCode.NotFound, callAs(memberId, "GET", "/api/teams/not-a-uuid/members").status)
     }
 
     // PATCH /api/teams/{teamId}/members/{userId}
@@ -263,7 +233,7 @@ class TeamControllerTest {
         val memberId = insertAccount("member-${uniq()}@x.pt", companyId = company)
         addMember(team, memberId, "MEMBER")
 
-        val response = patchAs(managerId, "/api/teams/$team/members/$memberId", """{"ftePercent":60}""")
+        val response = callAs(managerId, "PATCH", "/api/teams/$team/members/$memberId", """{"ftePercent":60}""")
 
         assertEquals(HttpStatusCode.NoContent, response.status)
         assertEquals(MemberState("MEMBER", 60, false, true), memberState(team, memberId))
@@ -279,8 +249,8 @@ class TeamControllerTest {
         val memberId = insertAccount("member-${uniq()}@x.pt", companyId = company)
         addMember(otherTeam, memberId, "MEMBER")
 
-        assertEquals(HttpStatusCode.NotFound, patchAs(managerId, "/api/teams/$otherTeam/members/$memberId", """{"ftePercent":60}""").status)
-        assertEquals(HttpStatusCode.NotFound, patchAs(managerId, "/api/teams/$team/members/${UUID.randomUUID()}", """{"ftePercent":60}""").status)
+        assertEquals(HttpStatusCode.NotFound, callAs(managerId, "PATCH", "/api/teams/$otherTeam/members/$memberId", """{"ftePercent":60}""").status)
+        assertEquals(HttpStatusCode.NotFound, callAs(managerId, "PATCH", "/api/teams/$team/members/${UUID.randomUUID()}", """{"ftePercent":60}""").status)
         assertEquals(100, memberState(otherTeam, memberId).ftePercent)
     }
 
@@ -293,10 +263,10 @@ class TeamControllerTest {
         addMember(team, memberId, "MEMBER")
         val path = "/api/teams/$team/members/$memberId"
 
-        assertEquals(HttpStatusCode.BadRequest, patchAs(admin, path, "{not json").status)
-        assertEquals(HttpStatusCode.BadRequest, patchAs(admin, path, """{"ftePercent":0}""").status)
-        assertEquals(HttpStatusCode.BadRequest, patchAs(admin, path, """{"ftePercent":101}""").status)
-        assertEquals(HttpStatusCode.BadRequest, patchAs(admin, path, """{"role":"ADMIN"}""").status)
+        assertEquals(HttpStatusCode.BadRequest, callAs(admin, "PATCH", path, "{not json").status)
+        assertEquals(HttpStatusCode.BadRequest, callAs(admin, "PATCH", path, """{"ftePercent":0}""").status)
+        assertEquals(HttpStatusCode.BadRequest, callAs(admin, "PATCH", path, """{"ftePercent":101}""").status)
+        assertEquals(HttpStatusCode.BadRequest, callAs(admin, "PATCH", path, """{"role":"ADMIN"}""").status)
         assertEquals(MemberState("MEMBER", 100, false, true), memberState(team, memberId))
     }
 
@@ -311,9 +281,9 @@ class TeamControllerTest {
         val admin = insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true)
         val path = "/api/teams/$team/members/$memberId"
 
-        assertEquals(HttpStatusCode.NotFound, patchAs(managerId, path, """{"role":"MANAGER"}""").status)
+        assertEquals(HttpStatusCode.NotFound, callAs(managerId, "PATCH", path, """{"role":"MANAGER"}""").status)
         assertEquals("MEMBER", memberState(team, memberId).role)
-        assertEquals(HttpStatusCode.NoContent, patchAs(admin, path, """{"role":"MANAGER"}""").status)
+        assertEquals(HttpStatusCode.NoContent, callAs(admin, "PATCH", path, """{"role":"MANAGER"}""").status)
         assertEquals("MANAGER", memberState(team, memberId).role)
     }
 
@@ -327,7 +297,7 @@ class TeamControllerTest {
         val memberId = insertAccount("member-${uniq()}@x.pt", companyId = company)
         addMember(team, memberId, "MEMBER")
 
-        assertEquals(HttpStatusCode.NoContent, deleteAs(admin, "/api/teams/$team/members/$memberId").status)
+        assertEquals(HttpStatusCode.NoContent, callAs(admin, "DELETE", "/api/teams/$team/members/$memberId").status)
         assertEquals(false, memberState(team, memberId).active)
         assertEquals(1, memberCount(team))
     }
@@ -343,9 +313,9 @@ class TeamControllerTest {
         val admin = insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true)
         val path = "/api/teams/$team/members/$otherManagerId"
 
-        assertEquals(HttpStatusCode.NotFound, deleteAs(managerId, path).status)
+        assertEquals(HttpStatusCode.NotFound, callAs(managerId, "DELETE", path).status)
         assertTrue(memberState(team, otherManagerId).active)
-        assertEquals(HttpStatusCode.NoContent, deleteAs(admin, path).status)
+        assertEquals(HttpStatusCode.NoContent, callAs(admin, "DELETE", path).status)
         assertFalse(memberState(team, otherManagerId).active)
     }
 
@@ -358,10 +328,10 @@ class TeamControllerTest {
         addMember(team, memberId, "MEMBER")
         val path = "/api/teams/$team/members/$memberId"
 
-        assertEquals(HttpStatusCode.NoContent, deleteAs(admin, path).status)
-        assertEquals(HttpStatusCode.NoContent, patchAs(admin, path, """{"active":true}""").status)
+        assertEquals(HttpStatusCode.NoContent, callAs(admin, "DELETE", path).status)
+        assertEquals(HttpStatusCode.NoContent, callAs(admin, "PATCH", path, """{"active":true}""").status)
         assertEquals(MemberState("MEMBER", 100, false, true), memberState(team, memberId))
-        val listed = getAs(admin, "/api/teams/$team/members").jsonArray().first {
+        val listed = callAs(admin, "GET", "/api/teams/$team/members").jsonArray().first {
             it.jsonObject["userId"]!!.jsonPrimitive.content == memberId.toString()
         }.jsonObject
         assertEquals("true", listed["active"].toString())
@@ -377,11 +347,11 @@ class TeamControllerTest {
         addMember(team, otherManagerId, "MANAGER")
         val admin = insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true)
         val path = "/api/teams/$team/members/$otherManagerId"
-        assertEquals(HttpStatusCode.NoContent, deleteAs(admin, path).status)
+        assertEquals(HttpStatusCode.NoContent, callAs(admin, "DELETE", path).status)
 
-        assertEquals(HttpStatusCode.NotFound, patchAs(managerId, path, """{"active":true}""").status)
+        assertEquals(HttpStatusCode.NotFound, callAs(managerId, "PATCH", path, """{"active":true}""").status)
         assertFalse(memberState(team, otherManagerId).active)
-        assertEquals(HttpStatusCode.NoContent, patchAs(admin, path, """{"active":true}""").status)
+        assertEquals(HttpStatusCode.NoContent, callAs(admin, "PATCH", path, """{"active":true}""").status)
         assertTrue(memberState(team, otherManagerId).active)
     }
 
@@ -395,7 +365,7 @@ class TeamControllerTest {
 
         assertEquals(
             HttpStatusCode.NoContent,
-            patchAs(admin, "/api/teams/$team/members/$memberId", """{"role":"MEMBER","ftePercent":40}""").status,
+            callAs(admin, "PATCH", "/api/teams/$team/members/$memberId", """{"role":"MEMBER","ftePercent":40}""").status,
         )
         assertEquals(MemberState("MEMBER", 40, false, true), memberState(team, memberId))
     }
@@ -408,10 +378,10 @@ class TeamControllerTest {
         addMember(team, managerId, "MANAGER")
         val path = "/api/teams/$team/members/$managerId"
 
-        assertEquals(HttpStatusCode.BadRequest, patchAs(managerId, path, """{"active":false}""").status)
+        assertEquals(HttpStatusCode.BadRequest, callAs(managerId, "PATCH", path, """{"active":false}""").status)
         assertTrue(memberState(team, managerId).active)
-        assertEquals(HttpStatusCode.NoContent, patchAs(managerId, path, """{"active":true}""").status)
-        assertEquals(HttpStatusCode.NoContent, patchAs(managerId, path, """{"ftePercent":70}""").status)
+        assertEquals(HttpStatusCode.NoContent, callAs(managerId, "PATCH", path, """{"active":true}""").status)
+        assertEquals(HttpStatusCode.NoContent, callAs(managerId, "PATCH", path, """{"ftePercent":70}""").status)
         assertEquals(MemberState("MANAGER", 70, false, true), memberState(team, managerId))
     }
 
@@ -424,21 +394,14 @@ class TeamControllerTest {
         val memberId = insertAccount("member-${uniq()}@x.pt", companyId = company)
         addMember(team, memberId, "MEMBER")
 
-        assertEquals(HttpStatusCode.BadRequest, deleteAs(managerId, "/api/teams/$team/members/$managerId").status)
+        assertEquals(HttpStatusCode.BadRequest, callAs(managerId, "DELETE", "/api/teams/$team/members/$managerId").status)
         assertTrue(memberState(team, managerId).active)
-        assertEquals(HttpStatusCode.NotFound, deleteAs(memberId, "/api/teams/$team/members/$managerId").status)
-        assertEquals(HttpStatusCode.NotFound, deleteAs(memberId, "/api/teams/$team/members/$memberId").status)
+        assertEquals(HttpStatusCode.NotFound, callAs(memberId, "DELETE", "/api/teams/$team/members/$managerId").status)
+        assertEquals(HttpStatusCode.NotFound, callAs(memberId, "DELETE", "/api/teams/$team/members/$memberId").status)
         assertTrue(memberState(team, memberId).active)
     }
 
     // /api/teams/{teamId}/rules
-
-    private suspend fun ApplicationTestBuilder.putAs(userId: UUID, path: String, body: String): HttpResponse =
-        client.put(path) {
-            header(HttpHeaders.Cookie, sessionCookie(userId))
-            contentType(ContentType.Application.Json)
-            setBody(body)
-        }
 
     private val pilotJson = """{"minRestBetweenShiftsMin":720,"maxConsecutiveWorkMin":720,"maxAvgWeeklyWorkMin":2880,""" +
         """"avgReferenceWeeks":26,"minWeeklyRestMin":1440,"maxConsecutiveNights":null,"restAfterNightRunMin":null}"""
@@ -454,7 +417,7 @@ class TeamControllerTest {
         addMember(team, manager, "MANAGER")
 
         for (userId in listOf(admin, manager)) {
-            val response = getAs(userId, "/api/teams/$team/rules")
+            val response = callAs(userId, "GET", "/api/teams/$team/rules")
             assertEquals(HttpStatusCode.OK, response.status)
             assertEquals(Json.parseToJsonElement(pilotJson), Json.parseToJsonElement(response.bodyAsText()))
         }
@@ -468,9 +431,9 @@ class TeamControllerTest {
         addMember(team, member, "MEMBER")
         val foreignAdmin = insertAccount("admin-${uniq()}@x.pt", companyId = insertCompany(), admin = true)
 
-        assertEquals(HttpStatusCode.NotFound, getAs(member, "/api/teams/$team/rules").status)
-        assertEquals(HttpStatusCode.NotFound, getAs(foreignAdmin, "/api/teams/$team/rules").status)
-        assertEquals(HttpStatusCode.NotFound, getAs(foreignAdmin, "/api/teams/not-a-uuid/rules").status)
+        assertEquals(HttpStatusCode.NotFound, callAs(member, "GET", "/api/teams/$team/rules").status)
+        assertEquals(HttpStatusCode.NotFound, callAs(foreignAdmin, "GET", "/api/teams/$team/rules").status)
+        assertEquals(HttpStatusCode.NotFound, callAs(foreignAdmin, "GET", "/api/teams/not-a-uuid/rules").status)
     }
 
     @Test
@@ -479,12 +442,12 @@ class TeamControllerTest {
         val team = insertTeam(company)
         val admin = insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true)
 
-        assertEquals(HttpStatusCode.NoContent, putAs(admin, "/api/teams/$team/rules", customJson).status)
-        assertEquals(Json.parseToJsonElement(customJson), Json.parseToJsonElement(getAs(admin, "/api/teams/$team/rules").bodyAsText()))
+        assertEquals(HttpStatusCode.NoContent, callAs(admin, "PUT", "/api/teams/$team/rules", customJson).status)
+        assertEquals(Json.parseToJsonElement(customJson), Json.parseToJsonElement(callAs(admin, "GET", "/api/teams/$team/rules").bodyAsText()))
 
         val omitted = """{"minRestBetweenShiftsMin":100,"maxConsecutiveWorkMin":200,"maxAvgWeeklyWorkMin":300,"avgReferenceWeeks":1,"minWeeklyRestMin":400}"""
-        assertEquals(HttpStatusCode.NoContent, putAs(admin, "/api/teams/$team/rules", omitted).status)
-        val json = Json.parseToJsonElement(getAs(admin, "/api/teams/$team/rules").bodyAsText()).jsonObject
+        assertEquals(HttpStatusCode.NoContent, callAs(admin, "PUT", "/api/teams/$team/rules", omitted).status)
+        val json = Json.parseToJsonElement(callAs(admin, "GET", "/api/teams/$team/rules").bodyAsText()).jsonObject
         assertEquals(100, json["minRestBetweenShiftsMin"]!!.jsonPrimitive.int)
         assertEquals(JsonNull, json["maxConsecutiveNights"])
         assertEquals(JsonNull, json["restAfterNightRunMin"])
@@ -501,14 +464,17 @@ class TeamControllerTest {
             customJson.replace("\"avgReferenceWeeks\":13", "\"avgReferenceWeeks\":53"),
             customJson.replace("\"minRestBetweenShiftsMin\":60", "\"minRestBetweenShiftsMin\":0"),
             customJson.replace("\"maxConsecutiveNights\":4", "\"maxConsecutiveNights\":-1"),
+            customJson.replace("\"maxConsecutiveNights\":4", "\"maxConsecutiveNights\":40000"),
+            customJson.replace("\"maxConsecutiveWorkMin\":480", "\"maxConsecutiveWorkMin\":-1"),
+            customJson.replace("\"maxAvgWeeklyWorkMin\":2400", "\"maxAvgWeeklyWorkMin\":0"),
             customJson.replace("\"restAfterNightRunMin\":600", "\"restAfterNightRunMin\":0"),
             customJson.replace("\"minWeeklyRestMin\":1000", "\"minWeeklyRestMin\":null"),
             """{"minRestBetweenShiftsMin":60}""",
             "{not json",
         )
 
-        for (body in bad) assertEquals(HttpStatusCode.BadRequest, putAs(admin, path, body).status, body)
-        assertEquals(Json.parseToJsonElement(pilotJson), Json.parseToJsonElement(getAs(admin, path).bodyAsText()))
+        for (body in bad) assertEquals(HttpStatusCode.BadRequest, callAs(admin, "PUT", path, body).status, body)
+        assertEquals(Json.parseToJsonElement(pilotJson), Json.parseToJsonElement(callAs(admin, "GET", path).bodyAsText()))
     }
 
     @Test
@@ -521,12 +487,12 @@ class TeamControllerTest {
         addMember(team, member, "MEMBER")
         val foreignAdmin = insertAccount("admin-${uniq()}@x.pt", companyId = insertCompany(), admin = true)
 
-        assertEquals(HttpStatusCode.NotFound, putAs(otherManager, "/api/teams/$team/rules", customJson).status)
-        assertEquals(HttpStatusCode.NotFound, putAs(member, "/api/teams/$team/rules", customJson).status)
-        assertEquals(HttpStatusCode.NotFound, putAs(foreignAdmin, "/api/teams/$team/rules", customJson).status)
-        assertEquals(HttpStatusCode.NotFound, putAs(foreignAdmin, "/api/teams/not-a-uuid/rules", customJson).status)
+        assertEquals(HttpStatusCode.NotFound, callAs(otherManager, "PUT", "/api/teams/$team/rules", customJson).status)
+        assertEquals(HttpStatusCode.NotFound, callAs(member, "PUT", "/api/teams/$team/rules", customJson).status)
+        assertEquals(HttpStatusCode.NotFound, callAs(foreignAdmin, "PUT", "/api/teams/$team/rules", customJson).status)
+        assertEquals(HttpStatusCode.NotFound, callAs(foreignAdmin, "PUT", "/api/teams/not-a-uuid/rules", customJson).status)
         val admin = insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true)
-        assertEquals(Json.parseToJsonElement(pilotJson), Json.parseToJsonElement(getAs(admin, "/api/teams/$team/rules").bodyAsText()))
+        assertEquals(Json.parseToJsonElement(pilotJson), Json.parseToJsonElement(callAs(admin, "GET", "/api/teams/$team/rules").bodyAsText()))
     }
 
     @Test
@@ -535,22 +501,22 @@ class TeamControllerTest {
         val source = insertTeam(company)
         val target = insertTeam(company)
         val admin = insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true)
-        assertEquals(HttpStatusCode.NoContent, putAs(admin, "/api/teams/$source/rules", customJson).status)
+        assertEquals(HttpStatusCode.NoContent, callAs(admin, "PUT", "/api/teams/$source/rules", customJson).status)
         val copyBody = """{"fromTeamId":"$source"}"""
 
         val partialManager = insertAccount("mgr-${uniq()}@x.pt", companyId = company)
         addMember(target, partialManager, "MANAGER")
-        assertEquals(HttpStatusCode.NotFound, postAs(partialManager, "/api/teams/$target/rules/copy", copyBody).status)
+        assertEquals(HttpStatusCode.NotFound, callAs(partialManager, "POST", "/api/teams/$target/rules/copy", copyBody).status)
 
         val bothManager = insertAccount("mgr-${uniq()}@x.pt", companyId = company)
         addMember(source, bothManager, "MANAGER")
         addMember(target, bothManager, "MANAGER")
-        assertEquals(HttpStatusCode.NoContent, postAs(bothManager, "/api/teams/$target/rules/copy", copyBody).status)
-        assertEquals(Json.parseToJsonElement(customJson), Json.parseToJsonElement(getAs(admin, "/api/teams/$target/rules").bodyAsText()))
+        assertEquals(HttpStatusCode.NoContent, callAs(bothManager, "POST", "/api/teams/$target/rules/copy", copyBody).status)
+        assertEquals(Json.parseToJsonElement(customJson), Json.parseToJsonElement(callAs(admin, "GET", "/api/teams/$target/rules").bodyAsText()))
 
         val foreignAdmin = insertAccount("admin-${uniq()}@x.pt", companyId = insertCompany(), admin = true)
-        assertEquals(HttpStatusCode.NotFound, postAs(foreignAdmin, "/api/teams/$target/rules/copy", copyBody).status)
-        assertEquals(HttpStatusCode.NotFound, postAs(admin, "/api/teams/$target/rules/copy", """{"fromTeamId":"${UUID.randomUUID()}"}""").status)
+        assertEquals(HttpStatusCode.NotFound, callAs(foreignAdmin, "POST", "/api/teams/$target/rules/copy", copyBody).status)
+        assertEquals(HttpStatusCode.NotFound, callAs(admin, "POST", "/api/teams/$target/rules/copy", """{"fromTeamId":"${UUID.randomUUID()}"}""").status)
     }
 
     @Test
@@ -559,8 +525,127 @@ class TeamControllerTest {
         val team = insertTeam(company)
         val admin = insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true)
 
-        assertEquals(HttpStatusCode.BadRequest, postAs(admin, "/api/teams/$team/rules/copy", """{"fromTeamId":"nope"}""").status)
-        assertEquals(HttpStatusCode.BadRequest, postAs(admin, "/api/teams/$team/rules/copy", "{not json").status)
-        assertEquals(HttpStatusCode.NotFound, postAs(admin, "/api/teams/not-a-uuid/rules/copy", """{"fromTeamId":"$team"}""").status)
+        assertEquals(HttpStatusCode.BadRequest, callAs(admin, "POST", "/api/teams/$team/rules/copy", """{"fromTeamId":"nope"}""").status)
+        assertEquals(HttpStatusCode.BadRequest, callAs(admin, "POST", "/api/teams/$team/rules/copy", "{not json").status)
+        assertEquals(HttpStatusCode.NotFound, callAs(admin, "POST", "/api/teams/not-a-uuid/rules/copy", """{"fromTeamId":"$team"}""").status)
+    }
+
+    // Service-level scenarios that the HTTP surface also has to keep.
+
+    private fun timezone(teamId: UUID): String =
+        testDs.connection.use { c ->
+            c.prepareStatement("SELECT timezone FROM team WHERE id = ?").use { st ->
+                st.setObject(1, teamId)
+                st.executeQuery().use { it.next(); it.getString(1) }
+            }
+        }
+
+    private fun setTimezone(teamId: UUID, tz: String) {
+        testDs.connection.use { c ->
+            c.prepareStatement("UPDATE team SET timezone = ? WHERE id = ?").use { st ->
+                st.setString(1, tz)
+                st.setObject(2, teamId)
+                st.executeUpdate()
+            }
+        }
+    }
+
+    @Test
+    fun inactiveManagerAndMissingTeamGet404() = routeTest {
+        val company = insertCompany()
+        val team = insertTeam(company)
+        val inactiveManager = insertAccount("mgr-${uniq()}@x.pt", companyId = company)
+        addMember(team, inactiveManager, "MANAGER", active = false)
+        val admin = insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true)
+
+        assertEquals(HttpStatusCode.NotFound, callAs(inactiveManager, "GET", "/api/teams/$team/members").status)
+        assertEquals(HttpStatusCode.NotFound, callAs(admin, "GET", "/api/teams/${UUID.randomUUID()}/members").status)
+    }
+
+    @Test
+    fun managerInviteRulesAndInvalidInviteFieldsAddNothing() = routeTest {
+        val company = insertCompany()
+        val team = insertTeam(company)
+        val otherTeam = insertTeam(company)
+        val manager = insertAccount("mgr-${uniq()}@x.pt", companyId = company)
+        addMember(team, manager, "MANAGER")
+        val admin = insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true)
+        val email = "new-${uniq()}@x.pt"
+        val path = "/api/teams/$team/invites"
+
+        assertEquals(HttpStatusCode.NotFound, callAs(manager, "POST", path, inviteBody(email, role = "MANAGER")).status)
+        assertEquals(HttpStatusCode.NotFound, callAs(manager, "POST", "/api/teams/$otherTeam/invites", inviteBody(email)).status)
+        assertEquals(HttpStatusCode.BadRequest, callAs(admin, "POST", path, """{"email":"$email","displayName":"Bia","role":"MEMBER","ftePercent":0}""").status)
+        assertEquals(HttpStatusCode.BadRequest, callAs(admin, "POST", path, """{"email":"$email","displayName":"  ","role":"MEMBER"}""").status)
+        assertEquals(HttpStatusCode.BadRequest, callAs(admin, "POST", path, """{"email":"nope","displayName":"Bia","role":"MEMBER"}""").status)
+        assertEquals(1, memberCount(team))
+        assertEquals(0, memberCount(otherTeam))
+    }
+
+    @Test
+    fun adminPatchesWorksShiftsAndRoleTogether() = routeTest {
+        val company = insertCompany()
+        val team = insertTeam(company)
+        val admin = insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true)
+        val memberId = insertAccount("member-${uniq()}@x.pt", companyId = company)
+        addMember(team, memberId, "MEMBER")
+
+        assertEquals(
+            HttpStatusCode.NoContent,
+            callAs(admin, "PATCH", "/api/teams/$team/members/$memberId", """{"ftePercent":50,"worksShifts":true,"role":"MANAGER"}""").status,
+        )
+        assertEquals(MemberState("MANAGER", 50, true, true), memberState(team, memberId))
+    }
+
+    @Test
+    fun managerCannotDemoteOtherManagerButAdminCan() = routeTest {
+        val company = insertCompany()
+        val team = insertTeam(company)
+        val managerId = insertAccount("mgr-${uniq()}@x.pt", companyId = company)
+        addMember(team, managerId, "MANAGER")
+        val otherManagerId = insertAccount("mgr2-${uniq()}@x.pt", companyId = company)
+        addMember(team, otherManagerId, "MANAGER")
+        val admin = insertAccount("admin-${uniq()}@x.pt", companyId = company, admin = true)
+        val path = "/api/teams/$team/members/$otherManagerId"
+
+        assertEquals(HttpStatusCode.NotFound, callAs(managerId, "PATCH", path, """{"role":"MEMBER"}""").status)
+        assertEquals("MANAGER", memberState(team, otherManagerId).role)
+        assertEquals(HttpStatusCode.NoContent, callAs(admin, "PATCH", path, """{"role":"MEMBER"}""").status)
+        assertEquals("MEMBER", memberState(team, otherManagerId).role)
+    }
+
+    @Test
+    fun managerOfOwnTeamPutsRulesAndZeroNightsIsAccepted() = routeTest {
+        val company = insertCompany()
+        val team = insertTeam(company)
+        val manager = insertAccount("mgr-${uniq()}@x.pt", companyId = company)
+        addMember(team, manager, "MANAGER")
+        val noNights = customJson.replace("\"maxConsecutiveNights\":4", "\"maxConsecutiveNights\":0")
+
+        assertEquals(HttpStatusCode.NoContent, callAs(manager, "PUT", "/api/teams/$team/rules", noNights).status)
+        val json = Json.parseToJsonElement(callAs(manager, "GET", "/api/teams/$team/rules").bodyAsText()).jsonObject
+        assertEquals(0, json["maxConsecutiveNights"]!!.jsonPrimitive.int)
+    }
+
+    @Test
+    fun copyRulesKeepsTargetTimezoneAndNeverCrossesCompanies() = routeTest {
+        val companyA = insertCompany()
+        val companyB = insertCompany()
+        val source = insertTeam(companyA)
+        val target = insertTeam(companyA)
+        val foreignTarget = insertTeam(companyB)
+        val admin = insertAccount("admin-${uniq()}@x.pt", companyId = companyA, admin = true)
+        val adminB = insertAccount("admin-${uniq()}@x.pt", companyId = companyB, admin = true)
+        assertEquals(HttpStatusCode.NoContent, callAs(admin, "PUT", "/api/teams/$source/rules", customJson).status)
+        setTimezone(target, "Europe/Madrid")
+        val copyBody = """{"fromTeamId":"$source"}"""
+
+        assertEquals(HttpStatusCode.NoContent, callAs(admin, "POST", "/api/teams/$target/rules/copy", copyBody).status)
+        assertEquals(Json.parseToJsonElement(customJson), Json.parseToJsonElement(callAs(admin, "GET", "/api/teams/$target/rules").bodyAsText()))
+        assertEquals("Europe/Madrid", timezone(target))
+
+        assertEquals(HttpStatusCode.NotFound, callAs(admin, "POST", "/api/teams/$foreignTarget/rules/copy", copyBody).status)
+        assertEquals(HttpStatusCode.NotFound, callAs(adminB, "POST", "/api/teams/$target/rules/copy", copyBody).status)
+        assertEquals(Json.parseToJsonElement(pilotJson), Json.parseToJsonElement(callAs(adminB, "GET", "/api/teams/$foreignTarget/rules").bodyAsText()))
     }
 }
