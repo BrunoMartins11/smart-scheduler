@@ -88,7 +88,7 @@ export function AppShell() {
 
       <Routes>
         <Route path="/" element={<Navigate to="/escala" replace />} />
-        <Route path="/equipa" element={<TeamPage />} />
+        <Route path="/equipa" element={<TeamPage meId={session.status === 'signedIn' ? session.me.id : undefined} />} />
         <Route path="*" element={<main className="p-4" />} />
       </Routes>
     </div>
