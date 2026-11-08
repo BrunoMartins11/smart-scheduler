@@ -6,12 +6,18 @@ import app.controller.auth.OAUTH_STATE_COOKIE
 import app.controller.auth.SESSION_TTL_SECONDS
 import app.controller.auth.UserSession
 import app.controller.auth.authRoutes
+import app.controller.availability.availabilityRoutes
+import app.controller.period.periodRoutes
 import app.controller.user.meRoutes
 import app.persistence.connectDatabase
 import app.persistence.migrate
+import app.persistence.availability.AvailabilityRepository
+import app.persistence.period.PeriodRepository
 import app.persistence.shift.ShiftTemplateRepository
 import app.persistence.team.TeamRepository
 import app.persistence.user.UserRepository
+import app.service.availability.AvailabilityService
+import app.service.period.PeriodService
 import app.service.shift.ShiftTemplateService
 import app.service.team.TeamService
 import app.service.auth.AuthService
@@ -57,6 +63,8 @@ fun Application.module() {
     val auth = AuthService(UserRepository(db))
     val teams = TeamService(TeamRepository(db))
     val shiftTemplates = ShiftTemplateService(ShiftTemplateRepository(db), teams)
+    val periods = PeriodService(PeriodRepository(db), teams)
+    val availability = AvailabilityService(AvailabilityRepository(db), teams)
 
     install(Sessions) {
         cookie<UserSession>("sid") {
@@ -112,5 +120,7 @@ fun Application.module() {
         meRoutes(auth)
         teamRoutes(auth, teams)
         shiftTemplateRoutes(auth, shiftTemplates)
+        periodRoutes(auth, periods)
+        availabilityRoutes(auth, availability)
     }
 }

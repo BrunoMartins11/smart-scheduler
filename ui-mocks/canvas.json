@@ -2,6 +2,21 @@
   "v": 3,
   "attachments": {},
   "boards": {
+    "AppAvailabilityMobile.dc.html": {
+      "h": 1080,
+      "title": "App · Disponibilidade (doctor)",
+      "w": 390,
+      "x": 1520,
+      "y": 2524
+    },
+    "AppEscala.dc.html": {
+      "expand": "fill",
+      "h": 1800,
+      "title": "App · Escala (manager)",
+      "w": 1440,
+      "x": 0,
+      "y": 2524
+    },
     "Availability.dc.html": {
       "h": 844,
       "is_interactive": true,
@@ -9,6 +24,21 @@
       "w": 390,
       "x": 0,
       "y": 1560
+    },
+    "Landing.dc.html": {
+      "expand": "fill",
+      "h": 2300,
+      "title": "Signed out · Landing",
+      "w": 1440,
+      "x": 0,
+      "y": -1500
+    },
+    "LandingMobile.dc.html": {
+      "h": 2000,
+      "title": "Signed out · Landing (mobile)",
+      "w": 390,
+      "x": 1520,
+      "y": -1500
     },
     "Main.dc.html": {
       "expand": "fill",
@@ -44,6 +74,14 @@
     "view": "canvas"
   },
   "notes": {
+    "app": {
+      "kind": "title1",
+      "maxW": 2000,
+      "text": "App pages: indigo band",
+      "w": 240,
+      "x": 960,
+      "y": 2290
+    },
     "doc": {
       "kind": "title1",
       "maxW": 860,
@@ -59,13 +97,25 @@
       "w": 240,
       "x": 0,
       "y": -300
+    },
+    "out": {
+      "kind": "title1",
+      "maxW": 2000,
+      "text": "Signed out",
+      "w": 240,
+      "x": 0,
+      "y": -1800
     }
   },
   "order": [
+    "Landing.dc.html",
+    "LandingMobile.dc.html",
     "Main.dc.html",
     "ShiftDetail.dc.html",
     "Availability.dc.html",
-    "MySchedule.dc.html"
+    "MySchedule.dc.html",
+    "AppEscala.dc.html",
+    "AppAvailabilityMobile.dc.html"
   ],
   "pages": [],
   "title": "Smart Scheduler UI Mocks"

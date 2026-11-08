@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<title>App · Escala</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+body{margin:0}
+a{color:#0e7490}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid #0e7490;outline-offset:2px}
+.on-dark:focus-visible,.nav-link:focus-visible,select.on-dark:focus-visible{outline:2px solid #67e8f9;outline-offset:2px}
+.nav-link:hover{background:rgba(255,255,255,.1);color:#ffffff}
+.btn-ghost:hover{background:rgba(255,255,255,.1)}
+.btn-primary:hover{background:#155e75}
+.btn-secondary:hover,.btn-cell:hover,.row-hover:hover{background:#f8fafc}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1800px; box-sizing: border-box; background: #f8fafc; color: #0f172a; font-family: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif; font-size: 16px; line-height: 24px;">
+
+  <!-- Band: header and page intro share the night-shift indigo. Stars are sparse and quiet. -->
+  <section style="position: relative; overflow: hidden; background: #1e1b4b; color: #ffffff;">
+    <svg aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%;" viewBox="0 0 1440 360" preserveAspectRatio="xMidYMin slice">
+      <circle cx="80" cy="40" r="1.2" fill="#ffffff" opacity=".5"></circle>
+      <circle cx="240" cy="30" r="1.5" fill="#ffffff" opacity=".6"></circle>
+      <circle cx="410" cy="70" r="1.2" fill="#ffffff" opacity=".25"></circle>
+      <circle cx="570" cy="20" r="1" fill="#ffffff" opacity=".5"></circle>
+      <circle cx="700" cy="200" r="1" fill="#ffffff" opacity=".3"></circle>
+      <circle cx="860" cy="30" r="1" fill="#ffffff" opacity=".25"></circle>
+      <circle cx="1010" cy="60" r="1" fill="#ffffff" opacity=".4"></circle>
+      <circle cx="1170" cy="130" r="1" fill="#ffffff" opacity=".5"></circle>
+      <circle cx="1240" cy="50" r="1.5" fill="#ffffff" opacity=".35"></circle>
+      <circle cx="1380" cy="90" r="1.2" fill="#ffffff" opacity=".5"></circle>
+      <circle cx="120" cy="290" r="1" fill="#ffffff" opacity=".3"></circle>
+      <circle cx="1310" cy="300" r="1" fill="#ffffff" opacity=".4"></circle>
+    </svg>
+
+    <header style="position: relative; max-width: 1152px; margin: 0 auto; padding: 16px 16px 0; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 32px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; line-height: 28px;">
+          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24"><rect x="0" y="0" width="24" height="24" rx="6" fill="#0e7490"></rect><g transform="translate(3.5 3.5) scale(0.66)" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="m9 16 2 2 4-4"></path></g></svg>
+          <span>Smart Scheduler</span>
+        </div>
+        <nav aria-label="Principal">
+          <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px;">
+            <li><a href="#" aria-current="page" class="nav-link on-dark" style="min-height: 44px; padding: 0 12px; box-sizing: border-box; display: inline-flex; align-items: center; border-radius: 6px; background: rgba(255,255,255,.1); color: #ffffff; font-weight: 700; text-decoration: none;">Escala</a></li>
+            <li><a href="#" class="nav-link on-dark" style="min-height: 44px; padding: 0 12px; box-sizing: border-box; display: inline-flex; align-items: center; border-radius: 6px; color: #c7d2fe; text-decoration: none;">Equipa</a></li>
+            <li><a href="#" class="nav-link on-dark" style="min-height: 44px; padding: 0 12px; box-sizing: border-box; display: inline-flex; align-items: center; border-radius: 6px; color: #c7d2fe; text-decoration: none;">Turnos</a></li>
+            <li><a href="#" class="nav-link on-dark" style="min-height: 44px; padding: 0 12px; box-sizing: border-box; display: inline-flex; align-items: center; border-radius: 6px; color: #c7d2fe; text-decoration: none;">Regras</a></li>
+            <li><a href="#" class="nav-link on-dark" style="min-height: 44px; padding: 0 12px; box-sizing: border-box; display: inline-flex; align-items: center; border-radius: 6px; color: #c7d2fe; text-decoration: none;">Disponibilidade</a></li>
+          </ul>
+        </nav>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="color: #c7d2fe;">Carla Mendes</span>
+        <button type="button" class="btn-ghost on-dark" style="min-height: 44px; padding: 0 16px; box-sizing: border-box; display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(255,255,255,.3); border-radius: 6px; background: transparent; color: #ffffff; font: inherit; font-weight: 700; cursor: pointer;"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>Sair</button>
+      </div>
+    </header>
+
+    <div style="position: relative; max-width: 1152px; margin: 0 auto; padding: 40px 16px 72px; box-sizing: border-box;">
+      <h1 style="margin: 0; font-size: 30px; line-height: 36px; font-weight: 700; color: #ffffff;">Escala</h1>
+      <p style="margin: 8px 0 0; font-size: 16px; line-height: 24px; color: #c7d2fe;">Períodos, prazos e disponibilidade da equipa.</p>
+      <div style="margin-top: 24px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <label for="team-select" class="on-dark" style="font-size: 14px; line-height: 20px; font-weight: 700; color: #c7d2fe;">Escolher equipa</label>
+        <select id="team-select" class="on-dark" style="height: 40px; min-width: 260px; padding: 0 12px; box-sizing: border-box; border: 1px solid #ffffff; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-size: 16px;">
+          <option selected>Medicina Interna</option>
+          <option>Urgência Geral</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- Content. The first card overlaps the band by 48 px; it is the only card with a shadow. -->
+  <main style="position: relative; max-width: 1152px; margin: -48px auto 0; padding: 0 16px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px;">
+
+    <!-- Periods list (PeriodsPage: periods table, row actions by status) -->
+    <section aria-labelledby="h-periods" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 30px rgba(30,27,75,.12); overflow: hidden;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 20px 24px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="width: 36px; height: 36px; border-radius: 8px; background: #ecfeff; color: #0e7490; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path><path d="M8 18h.01"></path><path d="M12 18h.01"></path><path d="M16 18h.01"></path></svg></span>
+          <h2 id="h-periods" style="margin: 0; font-size: 18px; line-height: 28px; font-weight: 700;">Períodos</h2>
+        </div>
+        <button type="button" class="btn-secondary" style="height: 40px; padding: 0 16px; box-sizing: border-box; display: inline-flex; align-items: center; gap: 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-weight: 700; cursor: pointer;"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Novo período</button>
+      </div>
+      <div style="overflow-x: auto; border-top: 1px solid #e2e8f0;">
+        <table style="width: 100%; min-width: 640px; border-collapse: collapse; text-align: left;">
+          <thead style="background: #f8fafc;">
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <th scope="col" style="padding: 12px 16px; font-size: 14px; font-weight: 700; color: #475569;">Datas</th>
+              <th scope="col" style="padding: 12px 16px; font-size: 14px; font-weight: 700; color: #475569;">Estado</th>
+              <th scope="col" style="padding: 12px 16px; font-size: 14px; font-weight: 700; color: #475569;">Prazo</th>
+              <th scope="col" style="padding: 12px 16px; font-size: 14px; font-weight: 700; color: #475569; text-align: right;">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="row-hover" style="border-bottom: 1px solid #f1f5f9;">
+              <th scope="row" style="padding: 12px 16px; font-weight: 700; font-variant-numeric: tabular-nums;">01/12/2026 – 31/12/2026</th>
+              <td style="padding: 12px 16px;"><span style="display: inline-flex; padding: 2px 10px; border-radius: 9999px; background: #f1f5f9; color: #334155; font-size: 12px; line-height: 16px; font-weight: 700;">Rascunho</span></td>
+              <td style="padding: 12px 16px; font-variant-numeric: tabular-nums;"><span>—</span></td>
+              <td style="padding: 12px 16px;">
+                <div style="display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px;">
+                  <button type="button" class="btn-primary" aria-label="Abrir período 01/12/2026 – 31/12/2026" style="height: 40px; padding: 0 16px; box-sizing: border-box; border: none; border-radius: 6px; background: #0e7490; color: #ffffff; font: inherit; font-weight: 700; cursor: pointer;">Abrir período</button>
+                  <button type="button" class="btn-secondary" aria-label="Ver cobertura 01/12/2026 – 31/12/2026" style="height: 40px; padding: 0 16px; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-weight: 700; cursor: pointer;">Ver cobertura</button>
+                  <button type="button" aria-label="Apagar 01/12/2026 – 31/12/2026" style="height: 40px; padding: 0 12px; box-sizing: border-box; border: none; border-radius: 6px; background: transparent; color: #b91c1c; font: inherit; font-weight: 700; cursor: pointer;">Apagar</button>
+                </div>
+              </td>
+            </tr>
+            <!-- Selected row: the period whose slots and submissions are shown below -->
+            <tr class="row-hover" style="border-bottom: 1px solid #f1f5f9; background: #ecfeff;">
+              <th scope="row" style="padding: 12px 16px; font-weight: 700; font-variant-numeric: tabular-nums;">01/11/2026 – 30/11/2026</th>
+              <td style="padding: 12px 16px;"><span style="display: inline-flex; padding: 2px 10px; border-radius: 9999px; background: #ede9fe; color: #5b21b6; font-size: 12px; line-height: 16px; font-weight: 700;">Aberto</span></td>
+              <td style="padding: 12px 16px;"><div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-variant-numeric: tabular-nums;"><span>09/11/2026, 18:00</span></div></td>
+              <td style="padding: 12px 16px;">
+                <div style="display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px;">
+                  <button type="button" class="btn-secondary" aria-label="Fechar período 01/11/2026 – 30/11/2026" style="height: 40px; padding: 0 16px; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-weight: 700; cursor: pointer;">Fechar período</button>
+                  <button type="button" class="btn-secondary" aria-label="Ver cobertura 01/11/2026 – 30/11/2026" style="height: 40px; padding: 0 16px; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-weight: 700; cursor: pointer;">Ver cobertura</button>
+                </div>
+              </td>
+            </tr>
+            <tr class="row-hover">
+              <th scope="row" style="padding: 12px 16px; font-weight: 700; font-variant-numeric: tabular-nums;">01/10/2026 – 31/10/2026</th>
+              <td style="padding: 12px 16px;"><span style="display: inline-flex; padding: 2px 10px; border-radius: 9999px; background: #dcfce7; color: #166534; font-size: 12px; line-height: 16px; font-weight: 700;">Publicado</span></td>
+              <td style="padding: 12px 16px; font-variant-numeric: tabular-nums;"><span>09/10/2026, 18:00</span></td>
+              <td style="padding: 12px 16px;">
+                <div style="display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px;">
+                  <button type="button" class="btn-secondary" aria-label="Ver cobertura 01/10/2026 – 31/10/2026" style="height: 40px; padding: 0 16px; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-weight: 700; cursor: pointer;">Ver cobertura</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Slots of the selected period (first week shown; the real grid lists every day of the period) -->
+    <section aria-labelledby="h-slots" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+      <details open>
+        <summary style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 20px 24px; cursor: pointer; list-style: none;">
+          <span style="width: 36px; height: 36px; border-radius: 8px; background: #ecfeff; color: #0e7490; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span>
+          <h2 id="h-slots" style="margin: 0; font-size: 18px; line-height: 28px; font-weight: 700;">Turnos do período</h2>
+          <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; line-height: 20px;">
+            <span style="color: #475569;">A ver: 01/11/2026 – 30/11/2026</span>
+            <span style="display: inline-flex; padding: 2px 10px; border-radius: 9999px; background: #ede9fe; color: #5b21b6; font-size: 12px; line-height: 16px; font-weight: 700;">Aberto</span>
+          </span>
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: auto;"><path d="m6 9 6 6 6-6"></path></svg>
+        </summary>
+        <div style="padding: 0 24px 24px; display: flex; flex-direction: column; gap: 12px;">
+          <p style="margin: 0; font-size: 14px; line-height: 20px; color: #475569;">Mín–máx de pessoas por turno. Os valores destacados (✎) foram alterados face ao modelo de turno.</p>
+          <div style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <table style="width: 100%; min-width: 640px; border-collapse: collapse; text-align: left;">
+              <thead style="background: #f8fafc;">
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                  <th scope="col" style="padding: 12px 16px; font-size: 14px; font-weight: 700; color: #475569;">Dia</th>
+                  <th scope="col" style="padding: 12px 16px; font-size: 14px; font-weight: 700; color: #475569;">
+                    <span style="display: block; font-size: 16px; color: #0f172a;">Urgência</span>
+                    <span style="font-weight: 400; font-variant-numeric: tabular-nums;">08:00–20:00</span>
+                  </th>
+                  <th scope="col" style="padding: 12px 16px; font-size: 14px; font-weight: 700; color: #475569;">
+                    <span style="display: block; font-size: 16px; color: #0f172a;">Noite</span>
+                    <span style="display: inline-flex; align-items: center; gap: 4px; font-weight: 400; font-variant-numeric: tabular-nums;">20:00–08:00 <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom: 1px solid #f1f5f9; background: #f8fafc;">
+                  <th scope="row" style="padding: 8px 16px; font-weight: 700; font-variant-numeric: tabular-nums;">dom. 01/11</th>
+                  <td style="padding: 8px 16px;"><button type="button" class="btn-cell" aria-label="Urgência dom. 01/11: mínimo 2, máximo 3" style="height: 40px; padding: 0 12px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-variant-numeric: tabular-nums; cursor: pointer;">2–3</button></td>
+                  <td style="padding: 8px 16px;"><button type="button" class="btn-cell" aria-label="Noite dom. 01/11: mínimo 1, máximo 2" style="height: 40px; padding: 0 12px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-variant-numeric: tabular-nums; cursor: pointer;">1–2</button></td>
+                </tr>
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <th scope="row" style="padding: 8px 16px; font-weight: 700; font-variant-numeric: tabular-nums;">seg. 02/11</th>
+                  <td style="padding: 8px 16px;"><button type="button" class="btn-cell" aria-label="Urgência seg. 02/11: mínimo 2, máximo 3" style="height: 40px; padding: 0 12px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-variant-numeric: tabular-nums; cursor: pointer;">2–3</button></td>
+                  <td style="padding: 8px 16px;"><button type="button" class="btn-cell" aria-label="Noite seg. 02/11: mínimo 1, máximo 2" style="height: 40px; padding: 0 12px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-variant-numeric: tabular-nums; cursor: pointer;">1–2</button></td>
+                </tr>
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <th scope="row" style="padding: 8px 16px; font-weight: 700; font-variant-numeric: tabular-nums;">ter. 03/11</th>
+                  <td style="padding: 8px 16px;"><button type="button" class="btn-cell" aria-label="Urgência ter. 03/11: mínimo 2, máximo 3" style="height: 40px; padding: 0 12px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-variant-numeric: tabular-nums; cursor: pointer;">2–3</button></td>
+                  <td style="padding: 8px 16px;"><button type="button" class="btn-cell" aria-label="Noite ter. 03/11: mínimo 1, máximo 2, alterado (modelo: 1–1)" style="height: 40px; padding: 0 12px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fffbeb; color: #78350f; box-shadow: inset 0 0 0 1px #d97706; font: inherit; font-variant-numeric: tabular-nums; cursor: pointer;"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg>1–2</button></td>
+                </tr>
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <th scope="row" style="padding: 8px 16px; font-weight: 700; font-variant-numeric: tabular-nums;">qua. 04/11</th>
+                  <td style="padding: 8px 16px;"><button type="button" class="btn-cell" aria-label="Urgência qua. 04/11: mínimo 2, máximo 3" style="height: 40px; padding: 0 12px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-variant-numeric: tabular-nums; cursor: pointer;">2–3</button></td>
+                  <td style="padding: 8px 16px;"><button type="button" class="btn-cell" aria-label="Noite qua. 04/11: mínimo 1, máximo 2" style="height: 40px; padding: 0 12px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-variant-numeric: tabular-nums; cursor: pointer;">1–2</button></td>
+                </tr>
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <th scope="row" style="padding: 8px 16px; font-weight: 700; font-variant-numeric: tabular-nums;">qui. 05/11</th>
+                  <td style="padding: 8px 16px;"><button type="button" class="btn-cell" aria-label="Urgência qui. 05/11: mínimo 2, máximo 3" style="height: 40px; padding: 0 12px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-variant-numeric: tabular-nums; cursor: pointer;">2–3</button></td>
+                  <td style="padding: 8px 16px;"><button type="button" class="btn-cell" aria-label="Noite qui. 05/11: mínimo 1, máximo 2" style="height: 40px; padding: 0 12px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-variant-numeric: tabular-nums; cursor: pointer;">1–2</button></td>
+                </tr>
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <th scope="row" style="padding: 8px 16px; font-weight: 700; font-variant-numeric: tabular-nums;">sex. 06/11</th>
+                  <td style="padding: 8px 16px;"><button type="button" class="btn-cell" aria-label="Urgência sex. 06/11: mínimo 3, máximo 4, alterado (modelo: 2–3)" style="height: 40px; padding: 0 12px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fffbeb; color: #78350f; box-shadow: inset 0 0 0 1px #d97706; font: inherit; font-variant-numeric: tabular-nums; cursor: pointer;"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg>3–4</button></td>
+                  <td style="padding: 8px 16px;"><button type="button" class="btn-cell" aria-label="Noite sex. 06/11: mínimo 1, máximo 2" style="height: 40px; padding: 0 12px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-variant-numeric: tabular-nums; cursor: pointer;">1–2</button></td>
+                </tr>
+                <tr style="background: #f8fafc;">
+                  <th scope="row" style="padding: 8px 16px; font-weight: 700; font-variant-numeric: tabular-nums;">sáb. 07/11</th>
+                  <td style="padding: 8px 16px;"><button type="button" class="btn-cell" aria-label="Urgência sáb. 07/11: mínimo 2, máximo 3" style="height: 40px; padding: 0 12px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-variant-numeric: tabular-nums; cursor: pointer;">2–3</button></td>
+                  <td style="padding: 8px 16px;"><button type="button" class="btn-cell" aria-label="Noite sáb. 07/11: mínimo 1, máximo 2" style="height: 40px; padding: 0 12px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-variant-numeric: tabular-nums; cursor: pointer;">1–2</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- Submissions of the selected period (PeriodsPage: shown once the period is not in draft) -->
+    <section aria-labelledby="h-subs" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 20px 24px; flex-wrap: wrap;">
+        <span style="width: 36px; height: 36px; border-radius: 8px; background: #ecfeff; color: #0e7490; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
+        <h2 id="h-subs" style="margin: 0; font-size: 18px; line-height: 28px; font-weight: 700;">Disponibilidade</h2>
+      </div>
+      <p style="margin: 0; padding: 0 24px 16px; font-weight: 700; color: #78350f;">3 de 6 ainda não responderam</p>
+      <div style="overflow-x: auto; border-top: 1px solid #e2e8f0;">
+        <table style="width: 100%; min-width: 480px; border-collapse: collapse; text-align: left;">
+          <thead style="background: #f8fafc;">
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <th scope="col" style="padding: 12px 16px; font-size: 14px; font-weight: 700; color: #475569;">Membro</th>
+              <th scope="col" style="padding: 12px 16px; font-size: 14px; font-weight: 700; color: #475569;">Estado</th>
+              <th scope="col" style="padding: 12px 16px; font-size: 14px; font-weight: 700; color: #475569; text-align: right;">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <th scope="row" style="padding: 12px 16px; font-weight: 700;">Diogo Ferreira</th>
+              <td style="padding: 12px 16px;"><span style="display: inline-flex; padding: 2px 10px; border-radius: 9999px; background: #f1f5f9; color: #334155; font-size: 12px; line-height: 16px; font-weight: 700;">Não respondeu</span></td>
+              <td style="padding: 12px 16px; text-align: right;"><button type="button" class="btn-secondary" id="member-diogo" style="height: 40px; padding: 0 16px; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-weight: 700; cursor: pointer;">Preencher disponibilidade</button></td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <th scope="row" style="padding: 12px 16px; font-weight: 700;">Inês Pacheco</th>
+              <td style="padding: 12px 16px;"><span style="display: inline-flex; padding: 2px 10px; border-radius: 9999px; background: #f1f5f9; color: #334155; font-size: 12px; line-height: 16px; font-weight: 700;">Não respondeu</span></td>
+              <td style="padding: 12px 16px; text-align: right;"><button type="button" class="btn-secondary" style="height: 40px; padding: 0 16px; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-weight: 700; cursor: pointer;">Preencher disponibilidade</button></td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <th scope="row" style="padding: 12px 16px; font-weight: 700;">Rui Almeida</th>
+              <td style="padding: 12px 16px;"><span style="display: inline-flex; padding: 2px 10px; border-radius: 9999px; background: #f1f5f9; color: #334155; font-size: 12px; line-height: 16px; font-weight: 700;">Não respondeu</span></td>
+              <td style="padding: 12px 16px; text-align: right;"><button type="button" class="btn-secondary" style="height: 40px; padding: 0 16px; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-weight: 700; cursor: pointer;">Preencher disponibilidade</button></td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <th scope="row" style="padding: 12px 16px; font-weight: 700;">Ana Ribeiro</th>
+              <td style="padding: 12px 16px;"><span style="display: inline-flex; padding: 2px 10px; border-radius: 9999px; background: #dcfce7; color: #166534; font-size: 12px; line-height: 16px; font-weight: 700;">Respondeu</span></td>
+              <td style="padding: 12px 16px; text-align: right;"><button type="button" class="btn-secondary" style="height: 40px; padding: 0 16px; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-weight: 700; cursor: pointer;">Ver / editar</button></td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <th scope="row" style="padding: 12px 16px; font-weight: 700;">Marta Sousa</th>
+              <td style="padding: 12px 16px;"><span style="display: inline-flex; padding: 2px 10px; border-radius: 9999px; background: #dcfce7; color: #166534; font-size: 12px; line-height: 16px; font-weight: 700;">Respondeu</span></td>
+              <td style="padding: 12px 16px; text-align: right;"><button type="button" class="btn-secondary" style="height: 40px; padding: 0 16px; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-weight: 700; cursor: pointer;">Ver / editar</button></td>
+            </tr>
+            <tr>
+              <th scope="row" style="padding: 12px 16px; font-weight: 700;">Tiago Lopes</th>
+              <td style="padding: 12px 16px;"><span style="display: inline-flex; padding: 2px 10px; border-radius: 9999px; background: #f1f5f9; color: #334155; font-size: 12px; line-height: 16px; font-weight: 700;">Preenchido pelo gestor</span></td>
+              <td style="padding: 12px 16px; text-align: right;"><button type="button" class="btn-secondary" style="height: 40px; padding: 0 16px; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #0f172a; font: inherit; font-weight: 700; cursor: pointer;">Ver / editar</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Empty state: a team with no periods yet (PeriodsPage, periods.empty). Icon tile + sentence + action. -->
+    <section aria-label="Equipa sem períodos" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+      <span style="width: 36px; height: 36px; border-radius: 8px; background: #ecfeff; color: #0e7490; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg></span>
+      <p style="margin: 0; flex: 1; min-width: 240px; color: #475569;">Esta equipa ainda não tem períodos.</p>
+      <button type="button" class="btn-primary" style="height: 40px; padding: 0 16px; box-sizing: border-box; display: inline-flex; align-items: center; gap: 8px; border: none; border-radius: 6px; background: #0e7490; color: #ffffff; font: inherit; font-weight: 700; cursor: pointer;"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Novo período</button>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // Static mock: every value is written in the markup above.
+    return {};
+  }
+}
+</script>
+</body>
+</html>

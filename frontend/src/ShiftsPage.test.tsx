@@ -127,11 +127,13 @@ describe('ShiftsPage', () => {
       minStaff: 1,
       maxStaff: 2,
     })
-    expect(fetchMock.mock.calls.filter(([, i]) => !i?.method).map(([u]) => u)).toEqual([
-      '/api/teams',
-      '/api/teams/t1/shift-templates',
-      '/api/teams/t1/shift-templates',
-    ])
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([, i]) => !i?.method).map(([u]) => u)).toEqual([
+        '/api/teams',
+        '/api/teams/t1/shift-templates',
+        '/api/teams/t1/shift-templates',
+      ]),
+    )
   })
 
   it('edits one row with one PUT of the full body, then refetches', async () => {
@@ -154,7 +156,7 @@ describe('ShiftsPage', () => {
       minStaff: 2,
       maxStaff: 3,
     })
-    expect(fetchMock.mock.calls.filter(([, i]) => !i?.method)).toHaveLength(3)
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([, i]) => !i?.method)).toHaveLength(3))
   })
 
   it('shows an inline message and sends nothing when max is below min', async () => {

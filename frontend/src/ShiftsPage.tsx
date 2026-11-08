@@ -1,23 +1,25 @@
-import { Check, Loader2, Moon, Pencil, Plus, Power, PowerOff, Sun, X } from 'lucide-react'
+import { Loader2, Moon, Pencil, Plus, Sun, Users } from 'lucide-react'
 import { Fragment, useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { ApiError, api } from './api'
 import { t, type MessageKey } from './i18n/messages'
 import {
   alertText,
   btnIcon,
-  btnIconDanger,
-  btnIconPrimary,
+  btnDangerText,
+  btnPrimary,
   btnRow,
-  card,
+  btnSecondary,
+  cardRaised,
   checkbox,
   input,
   muted,
-  pillAmber,
   pillGreen,
+  pillStone,
   pillIndigo,
   pillSlate,
   th,
 } from './ui'
+import { EmptyState, PageLayout } from './PageLayout'
 import { TeamPicker, useTeams } from './teams'
 
 const spinner = <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden="true" />
@@ -204,11 +206,12 @@ export function ShiftsPage() {
         <td className="px-4 py-3" />
         <td className="px-4 py-3">
           <div className="flex justify-end gap-2">
-            <button type="submit" form="shift-form" className={btnIconPrimary} aria-label={t('shifts.form.save')} title={t('shifts.form.save')} disabled={busy}>
-              {busyKey === 'save' ? spinner : <Check className="size-4" aria-hidden="true" />}
+            <button type="submit" form="shift-form" className={btnPrimary} aria-label={t('shifts.form.save')} disabled={busy}>
+              {busyKey === 'save' && spinner}
+              {t('shifts.form.save')}
             </button>
-            <button type="button" className={btnIcon} aria-label={t('shifts.form.cancel')} title={t('shifts.form.cancel')} disabled={busy} onClick={cancel}>
-              <X className="size-4" aria-hidden="true" />
+            <button type="button" className={btnSecondary} aria-label={t('shifts.form.cancel')} disabled={busy} onClick={cancel}>
+              {t('shifts.form.cancel')}
             </button>
           </div>
         </td>
@@ -226,135 +229,134 @@ export function ShiftsPage() {
   )
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-4">
-        <h1 className="text-xl font-bold">{t('shifts.heading')}</h1>
-        <TeamPicker teams={teams} teamId={teamId} onSelect={switchTeam} />
-      </div>
+    <PageLayout title={t('shifts.heading')} description={t('shifts.description')} controls={<TeamPicker teams={teams} teamId={teamId} onSelect={switchTeam} />}>
+      <div className="space-y-6">
 
-      {failure && (
-        <p role="alert" className={alertText}>
-          {failure}
-        </p>
-      )}
+        {failure && (
+          <p role="alert" className={alertText}>
+            {failure}
+          </p>
+        )}
 
-      {teams === null && !failure && <p className={muted}>{t('team.loading')}</p>}
+        {teams === null && !failure && <p className={muted}>{t('team.loading')}</p>}
 
-      {teams?.length === 0 && <p className={muted}>{t('team.noTeams')}</p>}
+        {teams?.length === 0 && (
+          <div className={cardRaised}>
+            <EmptyState icon={Users} text={t('team.noTeams')} />
+          </div>
+        )}
 
-      {teams && teams.length > 0 && (
-        <>
-          {shifts === null && !failure && <p className={muted}>{t('team.loading')}</p>}
+        {teams && teams.length > 0 && (
+          <>
+            {shifts === null && !failure && <p className={muted}>{t('team.loading')}</p>}
 
-          {shifts && (
-            <>
-              <div className={card}>
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[960px] text-left">
-                    <thead className="bg-slate-50 border-b border-slate-200">
-                      <tr>
-                        <th scope="col" className={th}>{t('shifts.col.name')}</th>
-                        <th scope="col" className={th}>{t('shifts.col.hours')}</th>
-                        <th scope="col" className={th}>{t('shifts.col.duration')}</th>
-                        <th scope="col" className={th}>{t('shifts.col.type')}</th>
-                        <th scope="col" className={th}>{t('shifts.col.coverage')}</th>
-                        <th scope="col" className={th}>{t('shifts.col.status')}</th>
-                        <th scope="col" className={`${th} text-right`}>{t('shifts.col.actions')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {shifts.map((s) =>
-                        edit?.id === s.id ? (
-                          <Fragment key={s.id}>{draftRows}</Fragment>
-                        ) : (
-                          <tr
-                            key={s.id}
-                            className={`border-b border-slate-100 last:border-0 hover:bg-slate-50 ${s.active ? '' : 'text-slate-600'}`}
-                          >
-                            <th scope="row" className="px-4 py-3 font-bold">
-                              {s.name}
-                            </th>
-                            <td className="px-4 py-3">
-                              <div className="flex flex-wrap items-center gap-2 tabular-nums">
-                                <span>{`${s.startTime} – ${s.endTime}`}</span>
-                                {nextDay(s) && <span className={pillSlate}>{t('shifts.nextDay')}</span>}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">{t('shifts.duration').replace('{hours}', hoursText(s))}</td>
-                            <td className="px-4 py-3">
-                              <span className={s.isNight ? pillIndigo : pillAmber}>
-                                {s.isNight ? <Moon className="size-3.5" aria-hidden="true" /> : <Sun className="size-3.5" aria-hidden="true" />}
-                                {t(s.isNight ? 'shifts.night' : 'shifts.day')}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 tabular-nums">
-                              {t('shifts.coverage').replace('{min}', String(s.minStaff)).replace('{max}', String(s.maxStaff))}
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className={s.active ? pillGreen : pillSlate}>{s.active ? t('shifts.active') : t('shifts.inactive')}</span>
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex justify-end gap-2">
-                                <button
-                                  type="button"
-                                  className={btnIcon}
-                                  aria-label={`${t('shifts.edit')} ${s.name}`}
-                                  title={`${t('shifts.edit')} ${s.name}`}
-                                  disabled={busy}
-                                  onClick={() => open({ id: s.id, draft: toDraft(s), initial: toDraft(s) })}
-                                >
-                                  <Pencil className="size-4" aria-hidden="true" />
-                                </button>
-                                <button
-                                  type="button"
-                                  className={s.active ? btnIconDanger : btnIcon}
-                                  aria-label={`${s.active ? t('shifts.deactivate') : t('shifts.reactivate')} ${s.name}`}
-                                  title={`${s.active ? t('shifts.deactivate') : t('shifts.reactivate')} ${s.name}`}
-                                  disabled={busy}
-                                  onClick={() => toggle(s)}
-                                >
-                                  {busyKey === `toggle:${s.id}` ? spinner : s.active ? (
-                                    <PowerOff className="size-4" aria-hidden="true" />
-                                  ) : (
-                                    <Power className="size-4" aria-hidden="true" />
-                                  )}
-                                </button>
-                              </div>
+            {shifts && (
+              <>
+                {/* The page's first card: it overlaps the band. */}
+                <div className={cardRaised}>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[960px] text-left">
+                      <thead className="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                          <th scope="col" className={th}>{t('shifts.col.name')}</th>
+                          <th scope="col" className={th}>{t('shifts.col.hours')}</th>
+                          <th scope="col" className={th}>{t('shifts.col.duration')}</th>
+                          <th scope="col" className={th}>{t('shifts.col.type')}</th>
+                          <th scope="col" className={th}>{t('shifts.col.coverage')}</th>
+                          <th scope="col" className={th}>{t('shifts.col.status')}</th>
+                          <th scope="col" className={`${th} text-right`}>{t('shifts.col.actions')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {shifts.map((s) =>
+                          edit?.id === s.id ? (
+                            <Fragment key={s.id}>{draftRows}</Fragment>
+                          ) : (
+                            <tr
+                              key={s.id}
+                              className={`border-b border-slate-100 last:border-0 hover:bg-slate-50 ${s.active ? '' : 'text-slate-600'}`}
+                            >
+                              <th scope="row" className="px-4 py-3 font-bold">
+                                {s.name}
+                              </th>
+                              <td className="px-4 py-3">
+                                <div className="flex flex-wrap items-center gap-2 tabular-nums">
+                                  <span>{`${s.startTime} – ${s.endTime}`}</span>
+                                  {nextDay(s) && <span className={pillSlate}>{t('shifts.nextDay')}</span>}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">{t('shifts.duration').replace('{hours}', hoursText(s))}</td>
+                              <td className="px-4 py-3">
+                                <span className={s.isNight ? pillIndigo : pillStone}>
+                                  {s.isNight ? <Moon className="size-3.5" aria-hidden="true" /> : <Sun className="size-3.5" aria-hidden="true" />}
+                                  {t(s.isNight ? 'shifts.night' : 'shifts.day')}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 tabular-nums">
+                                {t('shifts.coverage').replace('{min}', String(s.minStaff)).replace('{max}', String(s.maxStaff))}
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className={s.active ? pillGreen : pillSlate}>{s.active ? t('shifts.active') : t('shifts.inactive')}</span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    className={btnIcon}
+                                    aria-label={`${t('shifts.edit')} ${s.name}`}
+                                    title={`${t('shifts.edit')} ${s.name}`}
+                                    disabled={busy}
+                                    onClick={() => open({ id: s.id, draft: toDraft(s), initial: toDraft(s) })}
+                                  >
+                                    <Pencil className="size-4" aria-hidden="true" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={s.active ? btnDangerText : btnSecondary}
+                                    aria-label={`${s.active ? t('shifts.deactivate') : t('shifts.reactivate')} ${s.name}`}
+                                    disabled={busy}
+                                    onClick={() => toggle(s)}
+                                  >
+                                    {busyKey === `toggle:${s.id}` && spinner}
+                                    {s.active ? t('shifts.deactivate') : t('shifts.reactivate')}
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ),
+                        )}
+
+                        {shifts.length === 0 && (
+                          <tr>
+                            <td colSpan={7} className={`px-4 py-3 ${muted}`}>
+                              {t('shifts.empty')}
                             </td>
                           </tr>
-                        ),
-                      )}
+                        )}
 
-                      {shifts.length === 0 && (
-                        <tr>
-                          <td colSpan={7} className={`px-4 py-3 ${muted}`}>
-                            {t('shifts.empty')}
-                          </td>
-                        </tr>
-                      )}
-
-                      {edit?.id === null ? (
-                        draftRows
-                      ) : (
-                        <tr>
-                          <td colSpan={7} className="p-0 border-t border-dashed border-slate-300">
-                            <button type="button" className={btnRow} disabled={busy} onClick={() => open({ id: null, draft: blank, initial: blank })}>
-                              <Plus className="size-4" aria-hidden="true" />
-                              {t('shifts.add.submit')}
-                            </button>
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                        {edit?.id === null ? (
+                          draftRows
+                        ) : (
+                          <tr>
+                            <td colSpan={7} className="p-0 border-t border-dashed border-slate-300">
+                              <button type="button" className={btnRow} disabled={busy} onClick={() => open({ id: null, draft: blank, initial: blank })}>
+                                <Plus className="size-4" aria-hidden="true" />
+                                {t('shifts.add.submit')}
+                              </button>
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-              <p className={`text-sm ${muted}`}>{t('shifts.note')}</p>
-              <form id="shift-form" onSubmit={save} />
-            </>
-          )}
-        </>
-      )}
-    </div>
+                <p className={`text-sm ${muted}`}>{t('shifts.note')}</p>
+                <form id="shift-form" onSubmit={save} />
+              </>
+            )}
+          </>
+        )}
+      </div>
+    </PageLayout>
   )
 }

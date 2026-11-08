@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { api } from './api'
 import { t } from './i18n/messages'
-import { input } from './ui'
+import { inputOnDark } from './ui'
 
 export type Team = { id: string; name: string }
 
@@ -32,10 +32,10 @@ export function TeamPicker({ teams, teamId, onSelect }: { teams: Team[] | null; 
   if (!teams?.length) return null
   return (
     <div className="flex items-center gap-2">
-      <label htmlFor="team-select" className="text-sm font-bold text-slate-600">
+      <label htmlFor="team-select" className="text-sm font-bold text-indigo-200">
         {t('team.pick')}
       </label>
-      <select id="team-select" className={input} value={teamId} onChange={(e) => onSelect(e.target.value)}>
+      <select id="team-select" className={inputOnDark} value={teamId} onChange={(e) => onSelect(e.target.value)}>
         {teams.map((team) => (
           <option key={team.id} value={team.id}>
             {team.name}

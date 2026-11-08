@@ -114,7 +114,7 @@ describe('TeamPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Adicionar membro' }))
     fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Joana Lopes' } })
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'joana@example.pt' } })
-    fireEvent.change(screen.getByLabelText('FTE (%)'), { target: { value: '60' } })
+    fireEvent.change(screen.getByLabelText('Horário (%)'), { target: { value: '60' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
 
     await waitFor(() => expect(fetchMock.mock.calls.map(([u, i]) => [u, i?.method ?? 'GET'])).toEqual([
@@ -166,11 +166,11 @@ describe('TeamPage', () => {
     }))
     render(<MemoryRouter><TeamPage /></MemoryRouter>)
 
-    const input = await screen.findByRole('spinbutton', { name: 'FTE (%) Ana Silva' })
+    const input = await screen.findByRole('spinbutton', { name: 'Horário (%) Ana Silva' })
     fireEvent.change(input, { target: { value: '50' } })
     fireEvent.blur(input)
 
-    await waitFor(() => expect((screen.getByRole('spinbutton', { name: 'FTE (%) Ana Silva' }) as HTMLInputElement).value).toBe('50'))
+    await waitFor(() => expect((screen.getByRole('spinbutton', { name: 'Horário (%) Ana Silva' }) as HTMLInputElement).value).toBe('50'))
   })
 
   it('unticking works-shifts sends one PATCH and refetches the members', async () => {
@@ -204,7 +204,7 @@ describe('TeamPage', () => {
     vi.stubGlobal('fetch', fetchMock)
     render(<MemoryRouter><TeamPage /></MemoryRouter>)
 
-    const input = await screen.findByRole('spinbutton', { name: 'FTE (%) Ana Silva' })
+    const input = await screen.findByRole('spinbutton', { name: 'Horário (%) Ana Silva' })
     fireEvent.change(input, { target: { value: '50' } })
     fireEvent.blur(input)
 
@@ -223,7 +223,7 @@ describe('TeamPage', () => {
     vi.stubGlobal('fetch', fetchMock)
     render(<MemoryRouter><TeamPage /></MemoryRouter>)
 
-    const input = await screen.findByRole('spinbutton', { name: 'FTE (%) Ana Silva' }) as HTMLInputElement
+    const input = await screen.findByRole('spinbutton', { name: 'Horário (%) Ana Silva' }) as HTMLInputElement
     fireEvent.change(input, { target: { value: '0' } })
     fireEvent.blur(input)
 
@@ -299,12 +299,14 @@ describe('TeamPage', () => {
     expect(posts).toHaveLength(1)
     expect(posts[0][0]).toBe('/api/teams')
     expect(JSON.parse(posts[0][1]!.body as string)).toEqual({ name: 'Cardiologia' })
-    expect(fetchMock.mock.calls.map(([u, i]) => [u, i?.method ?? 'GET'])).toEqual([
-      ['/api/teams', 'GET'],
-      ['/api/teams', 'POST'],
-      ['/api/teams', 'GET'],
-      ['/api/teams/t2/members', 'GET'],
-    ])
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.map(([u, i]) => [u, i?.method ?? 'GET'])).toEqual([
+        ['/api/teams', 'GET'],
+        ['/api/teams', 'POST'],
+        ['/api/teams', 'GET'],
+        ['/api/teams/t2/members', 'GET'],
+      ]),
+    )
   })
 
   it('keeps the team form open and shows the alert when creating fails with 404', async () => {

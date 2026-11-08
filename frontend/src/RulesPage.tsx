@@ -1,12 +1,13 @@
-import { Check, Loader2 } from 'lucide-react'
+import { Check, Clock, Copy, Loader2, Moon, Scale, Users, type LucideIcon } from 'lucide-react'
 import { useEffect, useState, type ChangeEvent, type FormEvent, type InputHTMLAttributes, type ReactNode } from 'react'
 import { ApiError, api } from './api'
 import { t, type MessageKey } from './i18n/messages'
 import {
   alertText,
+  btnDangerOutline,
   btnPrimary,
-  btnSecondary,
   card,
+  cardRaised,
   input,
   inputGrouped,
   label,
@@ -14,6 +15,7 @@ import {
   pillSlate,
   suffix,
 } from './ui'
+import { EmptyState, PageLayout, SectionHeading } from './PageLayout'
 import { TeamPicker, useTeams } from './teams'
 
 type Rules = {
@@ -62,11 +64,11 @@ const errorFor = (err: unknown, fallback: MessageKey) =>
 
 const spinner = <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden="true" />
 
-function Section({ title, desc, children }: { title: MessageKey; desc: MessageKey; children: ReactNode }) {
+function Section({ title, desc, icon, raised, children }: { title: MessageKey; desc: MessageKey; icon: LucideIcon; raised?: boolean; children: ReactNode }) {
   return (
-    <section className={`${card} p-4 md:p-6 space-y-4`}>
-      <div>
-        <h2 className="text-lg font-bold">{t(title)}</h2>
+    <section className={`${raised ? cardRaised : card} p-4 md:p-6 space-y-4`}>
+      <div className="space-y-2">
+        <SectionHeading icon={icon}>{t(title)}</SectionHeading>
         <p className={muted}>{t(desc)}</p>
       </div>
       {children}
@@ -203,109 +205,111 @@ export function RulesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-4">
-        <h1 className="text-xl font-bold">{t('rules.heading')}</h1>
-        <TeamPicker teams={teams} teamId={teamId} onSelect={switchTeam} />
-      </div>
+    <PageLayout title={t('rules.heading')} description={t('rules.description')} controls={<TeamPicker teams={teams} teamId={teamId} onSelect={switchTeam} />}>
+      <div className="space-y-6">
 
-      {failure && (
-        <p role="alert" className={alertText}>
-          {failure}
-        </p>
-      )}
+        {failure && (
+          <p role="alert" className={alertText}>
+            {failure}
+          </p>
+        )}
 
-      {teams === null && !failure && <p className={muted}>{t('team.loading')}</p>}
+        {teams === null && !failure && <p className={muted}>{t('team.loading')}</p>}
 
-      {teams?.length === 0 && <p className={muted}>{t('team.noTeams')}</p>}
+        {teams?.length === 0 && (
+          <div className={cardRaised}>
+            <EmptyState icon={Users} text={t('team.noTeams')} />
+          </div>
+        )}
 
-      {teams && teams.length > 0 && (
-        <>
-          {form && (
-            <form onSubmit={save} className="space-y-6">
-              <Section title="rules.section.rest" desc="rules.section.rest.desc">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Field id="rule-min-rest" text={t('rules.minRest')} hint={t('rules.hint.minRest')} unit="rules.unit.h" required min={0.5} step={0.5} disabled={busy} value={form.minRest} onChange={set('minRest')} />
-                  <Field id="rule-min-weekly" text={t('rules.minWeekly')} unit="rules.unit.h" required min={0.5} step={0.5} disabled={busy} value={form.minWeekly} onChange={set('minWeekly')} />
-                </div>
-              </Section>
+        {teams && teams.length > 0 && (
+          <>
+            {form && (
+              <form onSubmit={save} className="space-y-6">
+                <Section title="rules.section.rest" desc="rules.section.rest.desc" icon={Clock} raised>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Field id="rule-min-rest" text={t('rules.minRest')} hint={t('rules.hint.minRest')} unit="rules.unit.h" required min={0.5} step={0.5} disabled={busy} value={form.minRest} onChange={set('minRest')} />
+                    <Field id="rule-min-weekly" text={t('rules.minWeekly')} unit="rules.unit.h" required min={0.5} step={0.5} disabled={busy} value={form.minWeekly} onChange={set('minWeekly')} />
+                  </div>
+                </Section>
 
-              <Section title="rules.section.limits" desc="rules.section.limits.desc">
-                <div className="grid gap-4 md:grid-cols-3">
-                  <Field id="rule-max-work" text={t('rules.maxWork')} hint={t('rules.hint.maxWork')} unit="rules.unit.h" required min={0.5} step={0.5} disabled={busy} value={form.maxWork} onChange={set('maxWork')} />
-                  <Field id="rule-max-avg" text={t('rules.maxAvg')} hint={t('rules.hint.maxAvg')} unit="rules.unit.h" required min={0.5} step={0.5} disabled={busy} value={form.maxAvg} onChange={set('maxAvg')} />
-                  <Field id="rule-ref-weeks" text={t('rules.refWeeks')} hint={t('rules.hint.refWeeks')} unit="rules.unit.weeks" required min={1} max={52} step={1} disabled={busy} value={form.refWeeks} onChange={set('refWeeks')} />
-                </div>
-              </Section>
+                <Section title="rules.section.limits" desc="rules.section.limits.desc" icon={Scale}>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <Field id="rule-max-work" text={t('rules.maxWork')} hint={t('rules.hint.maxWork')} unit="rules.unit.h" required min={0.5} step={0.5} disabled={busy} value={form.maxWork} onChange={set('maxWork')} />
+                    <Field id="rule-max-avg" text={t('rules.maxAvg')} hint={t('rules.hint.maxAvg')} unit="rules.unit.h" required min={0.5} step={0.5} disabled={busy} value={form.maxAvg} onChange={set('maxAvg')} />
+                    <Field id="rule-ref-weeks" text={t('rules.refWeeks')} hint={t('rules.hint.refWeeks')} unit="rules.unit.weeks" required min={1} max={52} step={1} disabled={busy} value={form.refWeeks} onChange={set('refWeeks')} />
+                  </div>
+                </Section>
 
-              <Section title="rules.section.nights" desc="rules.section.nights.desc">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Field id="rule-max-nights" text={t('rules.maxNights')} hint={t('rules.hint.maxNights')} optional unit="rules.unit.nights" min={0} step={1} disabled={busy} value={form.maxNights} onChange={set('maxNights')} />
-                  <Field id="rule-rest-after" text={t('rules.restAfter')} hint={t('rules.notSet')} optional unit="rules.unit.h" min={0.5} step={0.5} disabled={busy} value={form.restAfter} onChange={set('restAfter')} />
-                </div>
-              </Section>
+                <Section title="rules.section.nights" desc="rules.section.nights.desc" icon={Moon}>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Field id="rule-max-nights" text={t('rules.maxNights')} hint={t('rules.hint.maxNights')} optional unit="rules.unit.nights" min={0} step={1} disabled={busy} value={form.maxNights} onChange={set('maxNights')} />
+                    <Field id="rule-rest-after" text={t('rules.restAfter')} hint={t('rules.notSet')} optional unit="rules.unit.h" min={0.5} step={0.5} disabled={busy} value={form.restAfter} onChange={set('restAfter')} />
+                  </div>
+                </Section>
 
-              <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white py-3">
-                {dirty && (
-                  <p className={`flex items-center gap-2 text-sm ${muted}`}>
-                    <span className="size-2 rounded-full bg-amber-500" aria-hidden="true" />
-                    {t('rules.unsaved')}
-                  </p>
-                )}
-                <div className="ml-auto flex flex-wrap items-center gap-3">
-                  {saved && (
-                    <p role="status" className="flex items-center gap-2 font-bold text-green-800">
-                      <Check className="size-4" aria-hidden="true" />
-                      {t('rules.saved')}
+                <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white py-3">
+                  {dirty && (
+                    <p className={`flex items-center gap-2 text-sm ${muted}`}>
+                      <span className="size-2 rounded-full bg-amber-500" aria-hidden="true" />
+                      {t('rules.unsaved')}
                     </p>
                   )}
-                  {saveError && (
-                    <p role="alert" className={alertText}>
-                      {saveError}
-                    </p>
-                  )}
-                  <button type="submit" className={btnPrimary} disabled={busy || !dirty}>
-                    {pending === 'save' && spinner}
-                    {t('rules.save')}
+                  <div className="ml-auto flex flex-wrap items-center gap-3">
+                    {saved && (
+                      <p role="status" className="flex items-center gap-2 font-bold text-green-800">
+                        <Check className="size-4" aria-hidden="true" />
+                        {t('rules.saved')}
+                      </p>
+                    )}
+                    {saveError && (
+                      <p role="alert" className={alertText}>
+                        {saveError}
+                      </p>
+                    )}
+                    <button type="submit" className={btnPrimary} disabled={busy || !dirty}>
+                      {pending === 'save' && spinner}
+                      {t('rules.save')}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
+
+            {others.length > 0 && (
+              <section className={`${card} p-4 md:p-6 space-y-4`}>
+                <div className="space-y-2">
+                  <SectionHeading icon={Copy}>{t('rules.copy.section')}</SectionHeading>
+                  <p className={muted}>{t('rules.copy.desc')}</p>
+                </div>
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="copy-from" className={label}>
+                      {t('rules.copy.from')}
+                    </label>
+                    <select id="copy-from" className={input} value={from?.id} onChange={(e) => setCopyFrom(e.target.value)}>
+                      {others.map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button type="button" className={btnDangerOutline} disabled={busy} onClick={copy}>
+                    {pending === 'copy' && spinner}
+                    {t('rules.copy.submit')}
                   </button>
                 </div>
-              </div>
-            </form>
-          )}
-
-          {others.length > 0 && (
-            <section className={`${card} p-4 md:p-6 space-y-4`}>
-              <div>
-                <h2 className="text-lg font-bold">{t('rules.copy.section')}</h2>
-                <p className={muted}>{t('rules.copy.desc')}</p>
-              </div>
-              <div className="flex flex-wrap items-end gap-3">
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="copy-from" className={label}>
-                    {t('rules.copy.from')}
-                  </label>
-                  <select id="copy-from" className={input} value={from?.id} onChange={(e) => setCopyFrom(e.target.value)}>
-                    {others.map((team) => (
-                      <option key={team.id} value={team.id}>
-                        {team.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <button type="button" className={btnSecondary} disabled={busy} onClick={copy}>
-                  {pending === 'copy' && spinner}
-                  {t('rules.copy.submit')}
-                </button>
-              </div>
-              {copyError && (
-                <p role="alert" className={alertText}>
-                  {copyError}
-                </p>
-              )}
-            </section>
-          )}
-        </>
-      )}
-    </div>
+                {copyError && (
+                  <p role="alert" className={alertText}>
+                    {copyError}
+                  </p>
+                )}
+              </section>
+            )}
+          </>
+        )}
+      </div>
+    </PageLayout>
   )
 }

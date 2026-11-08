@@ -51,17 +51,17 @@ describe('RulesPage', () => {
     stubApi()
     renderPage()
 
-    expect(((await screen.findByLabelText('Descanso mínimo entre turnos (h)')) as HTMLInputElement).value).toBe('12')
-    expect((screen.getByLabelText('Trabalho consecutivo máximo (h)') as HTMLInputElement).value).toBe('48')
+    expect(((await screen.findByLabelText('Descanso mínimo entre turnos')) as HTMLInputElement).value).toBe('12')
+    expect((screen.getByLabelText('Trabalho consecutivo máximo') as HTMLInputElement).value).toBe('48')
     expect((screen.getByLabelText('Máximo de noites seguidas') as HTMLInputElement).value).toBe('')
-    expect((screen.getByLabelText('Descanso após noites seguidas (h)') as HTMLInputElement).value).toBe('')
+    expect((screen.getByLabelText('Descanso após noites seguidas') as HTMLInputElement).value).toBe('')
   })
 
   it('saves the whole rule set in minutes and sends empty night fields as null', async () => {
     const fetchMock = stubApi()
     renderPage()
 
-    fireEvent.change(await screen.findByLabelText('Descanso mínimo entre turnos (h)'), { target: { value: '11.5' } })
+    fireEvent.change(await screen.findByLabelText('Descanso mínimo entre turnos'), { target: { value: '11.5' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
 
     expect((await screen.findByRole('status')).textContent).toBe('Regras guardadas.')
@@ -92,7 +92,7 @@ describe('RulesPage', () => {
     expect((save as HTMLButtonElement).disabled).toBe(true)
     expect(screen.queryByText('Alterações por guardar')).toBeNull()
 
-    fireEvent.change(screen.getByLabelText('Descanso mínimo entre turnos (h)'), { target: { value: '11' } })
+    fireEvent.change(screen.getByLabelText('Descanso mínimo entre turnos'), { target: { value: '11' } })
     expect((save as HTMLButtonElement).disabled).toBe(false)
     expect(screen.getByText('Alterações por guardar')).toBeTruthy()
   })
@@ -106,7 +106,7 @@ describe('RulesPage', () => {
     })
     renderPage()
 
-    fireEvent.change(await screen.findByLabelText('Descanso mínimo entre turnos (h)'), { target: { value: '11' } })
+    fireEvent.change(await screen.findByLabelText('Descanso mínimo entre turnos'), { target: { value: '11' } })
     const save = screen.getByRole('button', { name: 'Guardar' })
     fireEvent.click(save)
     fireEvent.click(save)
@@ -122,7 +122,7 @@ describe('RulesPage', () => {
     const fetchMock = stubApi()
     renderPage()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Copiar' }))
+    fireEvent.click(await screen.findByRole('button', { name: "Substituir regras" }))
 
     expect(confirm).toHaveBeenCalledWith('Substituir todas as regras de Urgências pelas de Cardiologia?')
     expect(fetchMock.mock.calls.map(([u, i]) => [u, i?.method ?? 'GET'])).toEqual([
@@ -136,8 +136,8 @@ describe('RulesPage', () => {
     const fetchMock = stubApi()
     renderPage()
 
-    await screen.findByLabelText('Descanso mínimo entre turnos (h)')
-    fireEvent.click(screen.getByRole('button', { name: 'Copiar' }))
+    await screen.findByLabelText('Descanso mínimo entre turnos')
+    fireEvent.click(screen.getByRole('button', { name: "Substituir regras" }))
 
     await waitFor(() => expect(fetchMock.mock.calls.map(([u, i]) => [u, i?.method ?? 'GET'])).toEqual([
       ['/api/teams', 'GET'],
@@ -158,8 +158,8 @@ describe('RulesPage', () => {
     })
     renderPage()
 
-    await screen.findByLabelText('Descanso mínimo entre turnos (h)')
-    const copy = screen.getByRole('button', { name: 'Copiar' })
+    await screen.findByLabelText('Descanso mínimo entre turnos')
+    const copy = screen.getByRole('button', { name: "Substituir regras" })
     fireEvent.click(copy)
     fireEvent.click(copy)
     expect((copy as HTMLButtonElement).disabled).toBe(true)
@@ -173,7 +173,7 @@ describe('RulesPage', () => {
     const fetchMock = stubApi()
     renderPage('/regras?team=t2')
 
-    expect(await screen.findByLabelText('Descanso mínimo entre turnos (h)')).toBeTruthy()
+    expect(await screen.findByLabelText('Descanso mínimo entre turnos')).toBeTruthy()
     expect((screen.getByLabelText('Escolher equipa') as HTMLSelectElement).value).toBe('t2')
     expect(fetchMock.mock.calls.map(([u]) => u)).toContain('/api/teams/t2/rules')
   })
@@ -189,8 +189,8 @@ describe('RulesPage', () => {
     vi.stubGlobal('fetch', vi.fn(async (url: string) => (url === '/api/teams' ? json([teams[0]]) : json(rules))))
     renderPage()
 
-    await screen.findByLabelText('Descanso mínimo entre turnos (h)')
-    expect(screen.queryByRole('button', { name: 'Copiar' })).toBeNull()
+    await screen.findByLabelText('Descanso mínimo entre turnos')
+    expect(screen.queryByRole('button', { name: "Substituir regras" })).toBeNull()
   })
 
   it('asks before switching team with unsaved edits and keeps team and values when cancelled', async () => {
@@ -198,12 +198,12 @@ describe('RulesPage', () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
     renderPage()
 
-    fireEvent.change(await screen.findByLabelText('Descanso mínimo entre turnos (h)'), { target: { value: '11' } })
+    fireEvent.change(await screen.findByLabelText('Descanso mínimo entre turnos'), { target: { value: '11' } })
     fireEvent.change(screen.getByLabelText('Escolher equipa'), { target: { value: 't2' } })
 
     expect(confirm).toHaveBeenCalledWith('Tem alterações por guardar nestas regras. Descartar?')
     expect((screen.getByLabelText('Escolher equipa') as HTMLSelectElement).value).toBe('t1')
-    expect((screen.getByLabelText('Descanso mínimo entre turnos (h)') as HTMLInputElement).value).toBe('11')
+    expect((screen.getByLabelText('Descanso mínimo entre turnos') as HTMLInputElement).value).toBe('11')
     expect(fetchMock.mock.calls.map(([u]) => u)).not.toContain('/api/teams/t2/rules')
   })
 })
