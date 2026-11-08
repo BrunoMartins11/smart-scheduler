@@ -1,5 +1,7 @@
 import { LogIn, LogOut } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { Navigate, NavLink, Route, Routes } from 'react-router'
+import { TeamPage } from './TeamPage'
 import { t } from './i18n/messages'
 
 const btnPrimary =
@@ -9,12 +11,11 @@ const btnSecondary =
 const navLink =
   'px-2 py-1 rounded-md text-slate-600 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-700'
 
-// shortcut: plain hash links with no pages behind them, add react-router when the four routes get real content
 const navItems = [
-  { href: '#escala', label: t('nav.schedule') },
-  { href: '#equipa', label: t('nav.team') },
-  { href: '#turnos', label: t('nav.shifts') },
-  { href: '#regras', label: t('nav.rules') },
+  { to: '/escala', label: t('nav.schedule') },
+  { to: '/equipa', label: t('nav.team') },
+  { to: '/turnos', label: t('nav.shifts') },
+  { to: '/regras', label: t('nav.rules') },
 ]
 
 type Me = { id: string; email: string; displayName: string }
@@ -49,10 +50,10 @@ export function AppShell() {
           <nav aria-label={t('nav.label')}>
             <ul className="flex flex-wrap gap-2">
               {navItems.map((item) => (
-                <li key={item.href}>
-                  <a className={navLink} href={item.href}>
+                <li key={item.to}>
+                  <NavLink className={navLink} to={item.to}>
                     {item.label}
-                  </a>
+                  </NavLink>
                 </li>
               ))}
             </ul>
@@ -85,7 +86,11 @@ export function AppShell() {
         </div>
       </header>
 
-      <main className="p-4" />
+      <Routes>
+        <Route path="/" element={<Navigate to="/escala" replace />} />
+        <Route path="/equipa" element={<TeamPage />} />
+        <Route path="*" element={<main className="p-4" />} />
+      </Routes>
     </div>
   )
 }

@@ -1,8 +1,13 @@
 import { cleanup, render, screen } from '@testing-library/react'
+import { MemoryRouter, useLocation } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AppShell } from './AppShell'
 
 const NAV_LABELS = ['Escala', 'Equipa', 'Turnos', 'Regras']
+
+function LocationProbe() {
+  return <p data-testid="location">{useLocation().pathname}</p>
+}
 
 function stubMe(response: Response) {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response))
@@ -21,7 +26,11 @@ describe('AppShell', () => {
         headers: { 'content-type': 'application/json' },
       }),
     )
-    render(<AppShell />)
+    render(
+      <MemoryRouter>
+        <AppShell />
+      </MemoryRouter>,
+    )
 
     const nav = screen.getByRole('navigation', { name: 'Principal' })
     for (const label of NAV_LABELS) expect(nav.textContent).toContain(label)
@@ -34,12 +43,28 @@ describe('AppShell', () => {
 
   it('shows the login link when not signed in', async () => {
     stubMe(new Response(null, { status: 401 }))
-    render(<AppShell />)
+    render(
+      <MemoryRouter>
+        <AppShell />
+      </MemoryRouter>,
+    )
 
     const nav = screen.getByRole('navigation', { name: 'Principal' })
     for (const label of NAV_LABELS) expect(nav.textContent).toContain(label)
 
     const login = await screen.findByRole('link', { name: /Entrar/ })
     expect(login.getAttribute('href')).toBe('/auth/login')
+  })
+
+  it('redirects the root path to the schedule', async () => {
+    stubMe(new Response(null, { status: 401 }))
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <AppShell />
+        <LocationProbe />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByTestId('location').textContent).toBe('/escala')
   })
 })
