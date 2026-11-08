@@ -5,7 +5,14 @@ import app.persistence.connectDatabase
 import app.persistence.migrate
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.request
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
+import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
+import io.ktor.http.contentType
 import io.ktor.server.application.install
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
@@ -20,6 +27,7 @@ import io.ktor.server.testing.testApplication
 import io.ktor.util.hex
 import java.sql.Timestamp
 import java.sql.Types
+import java.time.Instant
 import java.util.UUID
 
 // One pool for the whole test JVM; each pool holds up to 10 Postgres connections.
@@ -145,7 +153,7 @@ fun teamCompany(teamId: UUID): UUID? =
     }
 
 // Gets the `sid` cookie from the same Sessions setup the app uses, so the wire format cannot drift.
-fun sessionCookie(userId: UUID): String {
+fun sessionCookie(userId: UUID, issuedAt: Long = Instant.now().epochSecond): String {
     val config = testConfig()
     val encryptKey = hex(config.property("session.encryptKey").getString())
     val signKey = hex(config.property("session.signKey").getString())
@@ -159,7 +167,7 @@ fun sessionCookie(userId: UUID): String {
             }
             routing {
                 get("/") {
-                    call.sessions.set(UserSession(userId.toString()))
+                    call.sessions.set(UserSession(userId.toString(), issuedAt))
                     call.respondText("")
                 }
             }
@@ -169,6 +177,17 @@ fun sessionCookie(userId: UUID): String {
     }
     return cookie
 }
+
+// Calls the API as userId (session cookie) with an optional JSON body.
+suspend fun ApplicationTestBuilder.callAs(userId: UUID, verb: String, path: String, body: String? = null): HttpResponse =
+    client.request(path) {
+        method = HttpMethod.parse(verb)
+        header(HttpHeaders.Cookie, sessionCookie(userId))
+        if (body != null) {
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }
+    }
 
 // Route-level harness: the real module() against the shared test Postgres.
 fun routeTest(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {

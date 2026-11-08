@@ -3,6 +3,7 @@ package app
 import app.controller.shift.shiftTemplateRoutes
 import app.controller.team.teamRoutes
 import app.controller.auth.OAUTH_STATE_COOKIE
+import app.controller.auth.SESSION_TTL_SECONDS
 import app.controller.auth.UserSession
 import app.controller.auth.authRoutes
 import app.controller.user.meRoutes
@@ -62,6 +63,7 @@ fun Application.module() {
             cookie.httpOnly = true
             cookie.extensions["SameSite"] = SameSite.Lax
             cookie.path = "/"
+            cookie.maxAgeInSeconds = SESSION_TTL_SECONDS
             cookie.secure = secure
             transform(SessionTransportTransformerEncrypt(encryptKey, signKey))
         }

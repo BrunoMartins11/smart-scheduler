@@ -21,13 +21,17 @@ import io.ktor.server.sessions.clear
 import io.ktor.server.sessions.set
 import io.ktor.server.sessions.sessions
 import java.net.URLEncoder
+import java.time.Instant
 import java.nio.charset.StandardCharsets
 import java.security.interfaces.RSAPublicKey
 import kotlinx.serialization.Serializable
 
 // The session cookie holds only the user_account id (DATA_MODEL.md §3, Auth0 login flow).
+// Shared hospital PCs: a login must not outlive a shift.
+const val SESSION_TTL_SECONDS = 12L * 3600
+
 @Serializable
-data class UserSession(val userId: String)
+data class UserSession(val userId: String, val issuedAt: Long)
 
 const val OAUTH_STATE_COOKIE = "oauth_state"
 
@@ -69,7 +73,7 @@ fun Route.authRoutes(
             val verified = claims.getClaim("email_verified").asBoolean() == true
             when (val login = auth.resolveLogin(claims.subject, claims.getClaim("email").asString(), verified)) {
                 is Login.Ok -> {
-                    call.sessions.set(UserSession(login.userId.toString()))
+                    call.sessions.set(UserSession(login.userId.toString(), Instant.now().epochSecond))
                     call.respondRedirect(publicUrl)
                 }
                 Login.NoInvite -> call.respondText("Peça um convite ao seu gestor.", status = HttpStatusCode.Forbidden)

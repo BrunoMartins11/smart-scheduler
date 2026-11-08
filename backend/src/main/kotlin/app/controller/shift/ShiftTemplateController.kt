@@ -1,5 +1,6 @@
 package app.controller.shift
 
+import app.controller.bodyOrNull
 import app.controller.currentUser
 import app.controller.uuidParam
 import app.model.ShiftTemplate
@@ -11,7 +12,6 @@ import app.service.shift.ShiftTemplateService
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
-import io.ktor.server.request.receiveText
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
@@ -21,8 +21,6 @@ import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -64,11 +62,7 @@ fun Route.shiftTemplateRoutes(auth: AuthService, shiftTemplates: ShiftTemplateSe
     post("/api/teams/{teamId}/shift-templates") {
         val user = call.currentUser(auth) ?: return@post
         val teamId = call.uuidParam("teamId") ?: return@post call.respond(HttpStatusCode.NotFound)
-        val body = try {
-            Json.decodeFromString<ShiftTemplateBody>(call.receiveText())
-        } catch (e: SerializationException) {
-            return@post call.respond(HttpStatusCode.BadRequest)
-        }
+        val body = call.bodyOrNull<ShiftTemplateBody>() ?: return@post call.respond(HttpStatusCode.BadRequest)
         call.respondTemplate(shiftTemplates.create(user, teamId, body), HttpStatusCode.Created)
     }
 
@@ -77,11 +71,7 @@ fun Route.shiftTemplateRoutes(auth: AuthService, shiftTemplates: ShiftTemplateSe
         val teamId = call.uuidParam("teamId")
         val templateId = call.uuidParam("templateId")
         if (teamId == null || templateId == null) return@put call.respond(HttpStatusCode.NotFound)
-        val body = try {
-            Json.decodeFromString<ShiftTemplateBody>(call.receiveText())
-        } catch (e: SerializationException) {
-            return@put call.respond(HttpStatusCode.BadRequest)
-        }
+        val body = call.bodyOrNull<ShiftTemplateBody>() ?: return@put call.respond(HttpStatusCode.BadRequest)
         call.respondTemplate(shiftTemplates.edit(user, teamId, templateId, body))
     }
 
@@ -100,11 +90,7 @@ fun Route.shiftTemplateRoutes(auth: AuthService, shiftTemplates: ShiftTemplateSe
         val templateId = call.uuidParam("templateId")
         if (teamId == null || templateId == null) return@patch call.respond(HttpStatusCode.NotFound)
         // Only { "active": bool } is accepted; any other body is 400.
-        val body = try {
-            Json.decodeFromString<SetActiveRequest>(call.receiveText())
-        } catch (e: SerializationException) {
-            return@patch call.respond(HttpStatusCode.BadRequest)
-        }
+        val body = call.bodyOrNull<SetActiveRequest>() ?: return@patch call.respond(HttpStatusCode.BadRequest)
         call.respondTemplate(shiftTemplates.setActive(user, teamId, templateId, body.active))
     }
 }

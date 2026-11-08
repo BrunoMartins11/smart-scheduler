@@ -39,28 +39,31 @@ class ShiftTemplateRepository(private val ds: DataSource) {
     fun setActive(templateId: UUID, teamId: UUID, companyId: UUID, active: Boolean): Boolean =
         ds.connection.use { c -> setActiveIn(c, templateId, teamId, companyId, active) }
 
-    // One transaction. The row lock makes a slot insert that references this template wait for the commit,
-    // so the used check cannot race with it. Unused: updated in place, returns templateId. Used: the old row is
-    // deactivated and a new row (newId) takes the values, keeping the old active flag. Null when not in reach.
+    // One transaction. FOR UPDATE waits out an in-flight slot insert (its FK holds a lock on this row). The used
+    // check is a separate statement, so it takes a fresh snapshot and sees that insert once committed.
+    // Unused: updated in place, returns templateId. Used: the old row is deactivated and a new row (newId)
+    // takes the values, keeping the old active flag. Null when not in reach.
     fun edit(templateId: UUID, teamId: UUID, companyId: UUID, t: ShiftTemplate, newId: UUID): UUID? {
         return ds.connection.use { c ->
             c.autoCommit = false
             try {
-                val row = c.prepareStatement(
-                    "SELECT EXISTS (SELECT 1 FROM shift_slot s WHERE s.template_id = st.id), st.active " +
-                        "FROM shift_template st JOIN team tm ON tm.id = st.team_id " +
+                val active = c.prepareStatement(
+                    "SELECT st.active FROM shift_template st JOIN team tm ON tm.id = st.team_id " +
                         "WHERE st.id = ? AND st.team_id = ? AND tm.company_id = ? FOR UPDATE OF st"
                 ).use { st ->
                     st.setObject(1, templateId)
                     st.setObject(2, teamId)
                     st.setObject(3, companyId)
-                    st.executeQuery().use { rs -> if (rs.next()) rs.getBoolean(1) to rs.getBoolean(2) else null }
+                    st.executeQuery().use { rs -> if (rs.next()) rs.getBoolean(1) else null }
                 }
-                if (row == null) {
+                if (active == null) {
                     c.rollback()
                     return null
                 }
-                val (used, active) = row
+                val used = c.prepareStatement("SELECT EXISTS (SELECT 1 FROM shift_slot WHERE template_id = ?)").use { st ->
+                    st.setObject(1, templateId)
+                    st.executeQuery().use { rs -> rs.next(); rs.getBoolean(1) }
+                }
                 val id = if (used) {
                     setActiveIn(c, templateId, teamId, companyId, false)
                     insertInto(c, newId, teamId, companyId, t.copy(active = active))

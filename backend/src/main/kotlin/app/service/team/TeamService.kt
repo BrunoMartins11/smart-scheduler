@@ -117,6 +117,7 @@ class TeamService(private val teams: TeamRepository) {
         )
         // 0 nights is a valid limit (no night shifts); only negatives are rejected.
         if (positive.any { it != null && it <= 0 } || rules.maxConsecutiveNights?.let { it < 0 } == true ||
+            (rules.maxConsecutiveNights ?: 0) > Short.MAX_VALUE ||
             rules.avgReferenceWeeks !in 1..52) return MemberResult.Invalid
         if (!canManage(actor, teamId)) return MemberResult.NotFound
         return if (teams.updateRules(teamId, actor.companyId, rules)) MemberResult.Ok else MemberResult.NotFound

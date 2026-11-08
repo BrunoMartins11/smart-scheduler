@@ -1,5 +1,6 @@
 package app.controller.team
 
+import app.controller.bodyOrNull
 import app.controller.currentUser
 import app.controller.uuidParam
 import app.model.TeamRules
@@ -10,7 +11,6 @@ import app.service.team.TeamService
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
-import io.ktor.server.request.receiveText
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
@@ -21,8 +21,6 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import java.util.UUID
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -92,11 +90,7 @@ fun Route.teamRoutes(auth: AuthService, teams: TeamService) {
         val teamId = call.uuidParam("teamId")
         val userId = call.uuidParam("userId")
         if (teamId == null || userId == null) return@patch call.respond(HttpStatusCode.NotFound)
-        val body = try {
-            Json.decodeFromString<UpdateMemberRequest>(call.receiveText())
-        } catch (e: SerializationException) {
-            return@patch call.respond(HttpStatusCode.BadRequest)
-        }
+        val body = call.bodyOrNull<UpdateMemberRequest>() ?: return@patch call.respond(HttpStatusCode.BadRequest)
         call.respondMember(teams.updateMember(user, teamId, userId, body.ftePercent, body.worksShifts, body.role, body.active))
     }
 
@@ -109,11 +103,7 @@ fun Route.teamRoutes(auth: AuthService, teams: TeamService) {
     }
     post("/api/teams") {
         val user = call.currentUser(auth) ?: return@post
-        val body = try {
-            Json.decodeFromString<CreateTeamRequest>(call.receiveText())
-        } catch (e: SerializationException) {
-            return@post call.respond(HttpStatusCode.BadRequest)
-        }
+        val body = call.bodyOrNull<CreateTeamRequest>() ?: return@post call.respond(HttpStatusCode.BadRequest)
         if (body.name.isBlank()) return@post call.respond(HttpStatusCode.BadRequest)
         val id = teams.createTeam(user, body.name) ?: return@post call.respond(HttpStatusCode.NotFound)
         val json = buildJsonObject { put("id", id.toString()) }
@@ -140,22 +130,14 @@ fun Route.teamRoutes(auth: AuthService, teams: TeamService) {
     put("/api/teams/{teamId}/rules") {
         val user = call.currentUser(auth) ?: return@put
         val teamId = call.uuidParam("teamId") ?: return@put call.respond(HttpStatusCode.NotFound)
-        val body = try {
-            Json.decodeFromString<TeamRules>(call.receiveText())
-        } catch (e: SerializationException) {
-            return@put call.respond(HttpStatusCode.BadRequest)
-        }
+        val body = call.bodyOrNull<TeamRules>() ?: return@put call.respond(HttpStatusCode.BadRequest)
         call.respondMember(teams.setRules(user, teamId, body))
     }
 
     post("/api/teams/{teamId}/rules/copy") {
         val user = call.currentUser(auth) ?: return@post
         val teamId = call.uuidParam("teamId") ?: return@post call.respond(HttpStatusCode.NotFound)
-        val body = try {
-            Json.decodeFromString<CopyRulesRequest>(call.receiveText())
-        } catch (e: SerializationException) {
-            return@post call.respond(HttpStatusCode.BadRequest)
-        }
+        val body = call.bodyOrNull<CopyRulesRequest>() ?: return@post call.respond(HttpStatusCode.BadRequest)
         val fromTeamId = runCatching { UUID.fromString(body.fromTeamId) }.getOrNull()
             ?: return@post call.respond(HttpStatusCode.BadRequest)
         call.respondMember(teams.copyRules(user, fromTeamId, teamId))
@@ -164,11 +146,7 @@ fun Route.teamRoutes(auth: AuthService, teams: TeamService) {
     post("/api/teams/{teamId}/invites") {
         val user = call.currentUser(auth) ?: return@post
         val teamId = call.uuidParam("teamId") ?: return@post call.respond(HttpStatusCode.NotFound)
-        val body = try {
-            Json.decodeFromString<InviteRequest>(call.receiveText())
-        } catch (e: SerializationException) {
-            return@post call.respond(HttpStatusCode.BadRequest)
-        }
+        val body = call.bodyOrNull<InviteRequest>() ?: return@post call.respond(HttpStatusCode.BadRequest)
         when (val result = teams.inviteMember(
             user, teamId, body.email, body.displayName, body.role, body.ftePercent, body.worksShifts,
         )) {
