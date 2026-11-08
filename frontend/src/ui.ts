@@ -20,6 +20,7 @@ export const card = 'bg-white border border-slate-200 rounded-lg'
 export const label = 'font-bold text-slate-900'
 export const muted = 'text-slate-600'
 export const alertText = 'text-red-700'
+export const th = 'px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-600'
 
 const pillBase = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold'
 // Shift type pills also carry an icon, so the type never relies on colour alone.

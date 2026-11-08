@@ -1,6 +1,5 @@
 import { Check, Loader2 } from 'lucide-react'
 import { useEffect, useState, type ChangeEvent, type FormEvent, type InputHTMLAttributes, type ReactNode } from 'react'
-import { useSearchParams } from 'react-router'
 import { ApiError, api } from './api'
 import { t, type MessageKey } from './i18n/messages'
 import {
@@ -15,8 +14,8 @@ import {
   pillSlate,
   suffix,
 } from './ui'
+import { TeamPicker, useTeams } from './teams'
 
-type Team = { id: string; name: string }
 type Rules = {
   minRestBetweenShiftsMin: number
   maxConsecutiveWorkMin: number
@@ -119,12 +118,12 @@ function Field({
 }
 
 export function RulesPage() {
-  const [params, setParams] = useSearchParams()
-  const [teams, setTeams] = useState<Team[] | null>(null)
+  const { teams, teamId, selectTeam, loadError } = useTeams()
   const [form, setForm] = useState<Form | null>(null)
   // The last rules loaded from the server; the form is dirty when it differs.
   const [loaded, setLoaded] = useState<Form | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const failure = error ?? (loadError !== null ? errorFor(loadError, 'rules.error') : null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [copyError, setCopyError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -133,21 +132,10 @@ export function RulesPage() {
   const busy = pending !== null
   const [copyFrom, setCopyFrom] = useState('')
 
-  const teamId = teams?.find((team) => team.id === params.get('team'))?.id ?? teams?.[0]?.id ?? ''
   const current = teams?.find((team) => team.id === teamId)
   const others = teams?.filter((team) => team.id !== teamId) ?? []
   const from = others.find((team) => team.id === copyFrom) ?? others[0]
   const dirty = form !== null && JSON.stringify(form) !== JSON.stringify(loaded)
-
-  useEffect(() => {
-    let ignore = false
-    api<Team[]>('/api/teams')
-      .then((list) => !ignore && setTeams(list))
-      .catch((err) => !ignore && setError(errorFor(err, 'rules.error')))
-    return () => {
-      ignore = true
-    }
-  }, [])
 
   useEffect(() => {
     if (!teamId) return
@@ -165,13 +153,15 @@ export function RulesPage() {
     }
   }, [teamId, reload])
 
-  function selectTeam(id: string) {
+  // Unsaved edits are in the form, so switching team asks before dropping them.
+  function switchTeam(id: string) {
+    if (dirty && !window.confirm(t('rules.discardConfirm'))) return
     setError(null)
     setSaveError(null)
     setCopyError(null)
     setSaved(false)
     setForm(null)
-    setParams({ team: id })
+    selectTeam(id)
   }
 
   const set = (key: keyof Form) => (e: ChangeEvent<HTMLInputElement>) => {
@@ -216,29 +206,16 @@ export function RulesPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-4">
         <h1 className="text-xl font-bold">{t('rules.heading')}</h1>
-        {teams && teams.length > 0 && (
-          <div className="flex items-center gap-2">
-            <label htmlFor="team-select" className="text-sm font-bold text-slate-600">
-              {t('team.pick')}
-            </label>
-            <select id="team-select" className={input} value={teamId} onChange={(e) => selectTeam(e.target.value)}>
-              {teams.map((team) => (
-                <option key={team.id} value={team.id}>
-                  {team.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+        <TeamPicker teams={teams} teamId={teamId} onSelect={switchTeam} />
       </div>
 
-      {error && (
+      {failure && (
         <p role="alert" className={alertText}>
-          {error}
+          {failure}
         </p>
       )}
 
-      {teams === null && !error && <p className={muted}>{t('team.loading')}</p>}
+      {teams === null && !failure && <p className={muted}>{t('team.loading')}</p>}
 
       {teams?.length === 0 && <p className={muted}>{t('team.noTeams')}</p>}
 

@@ -1,6 +1,5 @@
 import { Check, Loader2, Moon, Pencil, Plus, Power, PowerOff, Sun, X } from 'lucide-react'
 import { Fragment, useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router'
 import { ApiError, api } from './api'
 import { t, type MessageKey } from './i18n/messages'
 import {
@@ -17,12 +16,12 @@ import {
   pillGreen,
   pillIndigo,
   pillSlate,
+  th,
 } from './ui'
+import { TeamPicker, useTeams } from './teams'
 
-const th = 'px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-600'
 const spinner = <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden="true" />
 
-type Team = { id: string; name: string }
 type Shift = {
   id: string
   name: string
@@ -78,28 +77,16 @@ const errorFor = (err: unknown, fallback: MessageKey) =>
   t(err instanceof ApiError && err.status === 404 ? 'shifts.forbidden' : fallback)
 
 export function ShiftsPage() {
-  const [params, setParams] = useSearchParams()
-  const [teams, setTeams] = useState<Team[] | null>(null)
+  const { teams, teamId, selectTeam, loadError } = useTeams()
   const [shifts, setShifts] = useState<Shift[] | null>(null)
   const [edit, setEdit] = useState<Edit | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const failure = error ?? (loadError !== null ? errorFor(loadError, 'shifts.error') : null)
   const [editError, setEditError] = useState<string | null>(null)
   const [reload, setReload] = useState(0)
   // 'save', or `toggle:<id>` for the row whose active flag is changing.
   const [busyKey, setBusyKey] = useState<string | null>(null)
   const busy = busyKey !== null
-
-  const teamId = teams?.find((team) => team.id === params.get('team'))?.id ?? teams?.[0]?.id ?? ''
-
-  useEffect(() => {
-    let ignore = false
-    api<Team[]>('/api/teams')
-      .then((list) => !ignore && setTeams(list))
-      .catch((err) => !ignore && setError(errorFor(err, 'shifts.error')))
-    return () => {
-      ignore = true
-    }
-  }, [])
 
   useEffect(() => {
     if (!teamId) return
@@ -112,16 +99,19 @@ export function ShiftsPage() {
     }
   }, [teamId, reload])
 
-  function selectTeam(id: string) {
+  // Switching team drops the open row, so it asks the same way opening another row does.
+  const dirty = edit !== null && JSON.stringify(edit.draft) !== JSON.stringify(edit.initial)
+
+  function switchTeam(id: string) {
+    if (dirty && !window.confirm(t('shifts.discardConfirm'))) return
     setError(null)
     setEdit(null)
     setEditError(null)
     setShifts(null)
-    setParams({ team: id })
+    selectTeam(id)
   }
 
   function open(next: Edit) {
-    const dirty = edit !== null && JSON.stringify(edit.draft) !== JSON.stringify(edit.initial)
     if (dirty && !window.confirm(t('shifts.discardConfirm'))) return
     setEdit(next)
     setEditError(null)
@@ -138,6 +128,7 @@ export function ShiftsPage() {
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (busy || !edit) return
+    setError(null)
     if (Number(edit.draft.maxStaff) < Number(edit.draft.minStaff)) {
       setEditError(t('shifts.form.maxBelowMin'))
       return
@@ -238,35 +229,22 @@ export function ShiftsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-4">
         <h1 className="text-xl font-bold">{t('shifts.heading')}</h1>
-        {teams && teams.length > 0 && (
-          <div className="flex items-center gap-2">
-            <label htmlFor="team-select" className="text-sm font-bold text-slate-600">
-              {t('team.pick')}
-            </label>
-            <select id="team-select" className={input} value={teamId} onChange={(e) => selectTeam(e.target.value)}>
-              {teams.map((team) => (
-                <option key={team.id} value={team.id}>
-                  {team.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+        <TeamPicker teams={teams} teamId={teamId} onSelect={switchTeam} />
       </div>
 
-      {error && (
+      {failure && (
         <p role="alert" className={alertText}>
-          {error}
+          {failure}
         </p>
       )}
 
-      {teams === null && !error && <p className={muted}>{t('team.loading')}</p>}
+      {teams === null && !failure && <p className={muted}>{t('team.loading')}</p>}
 
       {teams?.length === 0 && <p className={muted}>{t('team.noTeams')}</p>}
 
       {teams && teams.length > 0 && (
         <>
-          {shifts === null && !error && <p className={muted}>{t('team.loading')}</p>}
+          {shifts === null && !failure && <p className={muted}>{t('team.loading')}</p>}
 
           {shifts && (
             <>

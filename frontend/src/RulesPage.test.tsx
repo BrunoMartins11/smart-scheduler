@@ -192,4 +192,18 @@ describe('RulesPage', () => {
     await screen.findByLabelText('Descanso mínimo entre turnos (h)')
     expect(screen.queryByRole('button', { name: 'Copiar' })).toBeNull()
   })
+
+  it('asks before switching team with unsaved edits and keeps team and values when cancelled', async () => {
+    const fetchMock = stubApi()
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    renderPage()
+
+    fireEvent.change(await screen.findByLabelText('Descanso mínimo entre turnos (h)'), { target: { value: '11' } })
+    fireEvent.change(screen.getByLabelText('Escolher equipa'), { target: { value: 't2' } })
+
+    expect(confirm).toHaveBeenCalledWith('Tem alterações por guardar nestas regras. Descartar?')
+    expect((screen.getByLabelText('Escolher equipa') as HTMLSelectElement).value).toBe('t1')
+    expect((screen.getByLabelText('Descanso mínimo entre turnos (h)') as HTMLInputElement).value).toBe('11')
+    expect(fetchMock.mock.calls.map(([u]) => u)).not.toContain('/api/teams/t2/rules')
+  })
 })

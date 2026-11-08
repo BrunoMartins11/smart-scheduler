@@ -260,4 +260,38 @@ describe('ShiftsPage', () => {
     expect(await screen.findByText('Esta equipa ainda não tem turnos.')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Adicionar turno' })).toBeTruthy()
   })
+
+  it('clears a failed toggle message once a later save succeeds', async () => {
+    stubApi([night, day, retired], async (_url, init) => (init?.method === 'DELETE' ? json({}, 500) : json({ id: 's9' }, 201)))
+    renderPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Desativar Manhã' }))
+    expect(await screen.findByRole('alert')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar turno' }))
+    fireEvent.change(screen.getByLabelText('Nome do turno'), { target: { value: 'Tarde' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+
+    await waitFor(() => expect(screen.queryByLabelText('Nome do turno')).toBeNull())
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('asks before switching team with unsaved edits and only switches when confirmed', async () => {
+    const fetchMock = stubApi()
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
+    renderPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Editar Madrugada' }))
+    fireEvent.change(screen.getByLabelText('Máximo'), { target: { value: '4' } })
+    fireEvent.change(screen.getByLabelText('Escolher equipa'), { target: { value: 't2' } })
+
+    expect(confirm).toHaveBeenCalledWith('Tem alterações por guardar neste turno. Descartar?')
+    expect((screen.getByLabelText('Escolher equipa') as HTMLSelectElement).value).toBe('t1')
+    expect((screen.getByLabelText('Nome do turno') as HTMLInputElement).value).toBe('Madrugada')
+
+    fireEvent.change(screen.getByLabelText('Escolher equipa'), { target: { value: 't2' } })
+    await waitFor(() => expect(fetchMock.mock.calls.map(([u]) => u)).toContain('/api/teams/t2/shift-templates'))
+    expect((screen.getByLabelText('Escolher equipa') as HTMLSelectElement).value).toBe('t2')
+    expect(screen.queryByLabelText('Nome do turno')).toBeNull()
+  })
 })

@@ -1,6 +1,5 @@
 import { Check, Loader2, Plus, UserRoundCheck, UserRoundX, X } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router'
 import { ApiError, api } from './api'
 import { messages, t, type MessageKey } from './i18n/messages'
 import {
@@ -21,12 +20,12 @@ import {
   pillGreen,
   pillSlate,
   suffix,
+  th,
 } from './ui'
+import { TeamPicker, useTeams, type Team } from './teams'
 
-const th = 'px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-600'
 const spinner = <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden="true" />
 
-type Team = { id: string; name: string }
 type Member = {
   userId: string
   email: string
@@ -41,9 +40,10 @@ type Member = {
 const roleLabel = (role: string) => (`role.${role}` in messages ? t(`role.${role}` as MessageKey) : role)
 
 export function TeamPage({ meId, isAdmin }: { meId?: string; isAdmin?: boolean }) {
-  const [teams, setTeams] = useState<Team[] | null>(null)
+  const { teams, setTeams, teamId, selectTeam, loadError } = useTeams()
   const [members, setMembers] = useState<Member[] | null>(null)
   const [error, setError] = useState(false)
+  const failed = error || loadError !== null
   const [reload, setReload] = useState(0)
   // Which action is running: 'add', 'create', `toggle:<userId>` or a userId for an inline edit.
   const [busyKey, setBusyKey] = useState<string | null>(null)
@@ -58,23 +58,6 @@ export function TeamPage({ meId, isAdmin }: { meId?: string; isAdmin?: boolean }
   const [creating, setCreating] = useState(false)
   const [teamName, setTeamName] = useState('')
   const [createError, setCreateError] = useState<string | null>(null)
-  const [params, setParams] = useSearchParams()
-  // Selected team comes from ?team=; unknown or missing falls back to the first team.
-  const teamId = teams?.find((team) => team.id === params.get('team'))?.id ?? teams?.[0]?.id ?? ''
-
-  useEffect(() => {
-    let ignore = false
-    api<Team[]>('/api/teams')
-      .then((list) => {
-        if (ignore) return
-        setTeams(list)
-      })
-      .catch(() => !ignore && setError(true))
-    return () => {
-      ignore = true
-    }
-  }, [])
-
   useEffect(() => {
     if (!teamId) return
     let ignore = false
@@ -127,6 +110,15 @@ export function TeamPage({ meId, isAdmin }: { meId?: string; isAdmin?: boolean }
     setAddError(null)
   }
 
+  // The add row belongs to the team it was opened for, so typed input is confirmed before it goes.
+  function switchTeam(id: string) {
+    if ((name || email) && !window.confirm(t('team.add.discardConfirm'))) return
+    resetAdd()
+    setError(false)
+    setMembers(null)
+    selectTeam(id)
+  }
+
   async function addMember(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (busy) return
@@ -169,7 +161,7 @@ export function TeamPage({ meId, isAdmin }: { meId?: string; isAdmin?: boolean }
       try {
         setTeams(await api<Team[]>('/api/teams'))
         setMembers(null)
-        setParams({ team: id })
+        selectTeam(id)
       } catch {
         setError(true)
       }
@@ -184,29 +176,7 @@ export function TeamPage({ meId, isAdmin }: { meId?: string; isAdmin?: boolean }
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-4">
           <h1 className="text-xl font-bold">{t('team.heading')}</h1>
-          {teams && teams.length > 0 && (
-            <div className="flex items-center gap-2">
-              <label htmlFor="team-select" className="text-sm font-bold text-slate-600">
-                {t('team.pick')}
-              </label>
-              <select
-                id="team-select"
-                className={input}
-                value={teamId}
-                onChange={(e) => {
-                  setError(false)
-                  setMembers(null)
-                  setParams({ team: e.target.value })
-                }}
-              >
-                {teams.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <TeamPicker teams={teams} teamId={teamId} onSelect={switchTeam} />
         </div>
         {isAdmin && (
           <button type="button" className={btnSecondary} disabled={busy} onClick={() => setCreating(!creating)}>
@@ -237,19 +207,19 @@ export function TeamPage({ meId, isAdmin }: { meId?: string; isAdmin?: boolean }
         </p>
       )}
 
-      {error && (
+      {failed && (
         <p role="alert" className={alertText}>
           {t('team.error')}
         </p>
       )}
 
-      {teams === null && !error && <p className={muted}>{t('team.loading')}</p>}
+      {teams === null && !failed && <p className={muted}>{t('team.loading')}</p>}
 
       {teams?.length === 0 && <p className={muted}>{t('team.noTeams')}</p>}
 
       {teams && teams.length > 0 && (
         <>
-          {members === null && !error && <p className={muted}>{t('team.loading')}</p>}
+          {members === null && !failed && <p className={muted}>{t('team.loading')}</p>}
 
           {members?.length === 0 && <p className={muted}>{t('team.empty')}</p>}
 

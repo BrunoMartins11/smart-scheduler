@@ -19,6 +19,7 @@ function json(body: unknown, status = 200) {
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
 })
 
 describe('TeamPage', () => {
@@ -451,5 +452,22 @@ describe('TeamPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Adicionar membro' }))
     const addRole = screen.getByRole('combobox', { name: 'Função' }) as HTMLSelectElement
     expect((addRole.querySelector('option[value="MANAGER"]') as HTMLOptionElement).disabled).toBe(true)
+  })
+
+  it('asks before switching team with a typed member, then closes the add row on confirm', async () => {
+    const twoTeams = [...teams, { id: 't2', name: 'Cardiologia' }]
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const fetchMock = vi.fn(async (url: string) => (url === '/api/teams' ? json(twoTeams) : json(members())))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<MemoryRouter><TeamPage /></MemoryRouter>)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Adicionar membro' }))
+    fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Joana Lopes' } })
+    fireEvent.change(screen.getByLabelText('Escolher equipa'), { target: { value: 't2' } })
+
+    expect(confirm).toHaveBeenCalledWith('Tem um membro por adicionar. Descartar?')
+    expect(screen.queryByLabelText('Nome')).toBeNull()
+    fireEvent.click(await screen.findByRole('button', { name: 'Adicionar membro' }))
+    expect((screen.getByLabelText('Nome') as HTMLInputElement).value).toBe('')
   })
 })
