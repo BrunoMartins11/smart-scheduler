@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<title>App · Calendário de disponibilidade</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+body{margin:0}
+a{color:#0e7490}
+button:focus-visible,a:focus-visible{outline:2px solid #0e7490;outline-offset:2px}
+.on-dark:focus-visible{outline:2px solid #67e8f9;outline-offset:2px}
+.btn-ghost:hover{background:rgba(255,255,255,.1)}
+.btn-secondary{background:#ffffff}
+.btn-secondary:hover{background:#f8fafc}
+.nav-btn{background:#ffffff}
+.nav-btn:hover{background:#f8fafc}
+.day-btn{background:transparent}
+.day-btn:hover{background:#f8fafc}
+.opt-btn:hover{filter:brightness(.98)}
+</style>
+</helmet>
+<div style="width: 390px; min-height: 1180px; box-sizing: border-box; background: #f8fafc; color: #0f172a; font-family: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif; font-size: 16px; line-height: 24px; padding-bottom: 24px;">
+
+  <!-- Band: copied from AppAvailabilityMobile (logo, name, compact Sair, sparse stars). -->
+  <section style="position: relative; overflow: hidden; background: #1e1b4b; color: #ffffff;">
+    <svg aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%;" viewBox="0 0 390 300" preserveAspectRatio="xMidYMin slice">
+      <circle cx="40" cy="36" r="1.2" fill="#ffffff" opacity=".5"></circle>
+      <circle cx="120" cy="20" r="1" fill="#ffffff" opacity=".4"></circle>
+      <circle cx="210" cy="60" r="1.2" fill="#ffffff" opacity=".3"></circle>
+      <circle cx="300" cy="28" r="1.5" fill="#ffffff" opacity=".5"></circle>
+      <circle cx="350" cy="110" r="1" fill="#ffffff" opacity=".35"></circle>
+      <circle cx="70" cy="150" r="1" fill="#ffffff" opacity=".3"></circle>
+      <circle cx="260" cy="190" r="1" fill="#ffffff" opacity=".3"></circle>
+    </svg>
+
+    <header style="position: relative; padding: 16px 16px 0; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; line-height: 28px;">
+        <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24"><rect x="0" y="0" width="24" height="24" rx="6" fill="#0e7490"></rect><g transform="translate(3.5 3.5) scale(0.66)" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="m9 16 2 2 4-4"></path></g></svg>
+        <span>Smart Scheduler</span>
+      </div>
+      <button type="button" aria-label="Sair" title="Sair" class="btn-ghost on-dark" style="width: 44px; height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.3); border-radius: 6px; background: transparent; color: #ffffff; cursor: pointer;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></button>
+    </header>
+
+    <div style="position: relative; padding: 24px 16px 64px; box-sizing: border-box;">
+      <h1 style="margin: 0; font-size: 26px; line-height: 32px; font-weight: 700; color: #ffffff;">01/11/2026 – 30/11/2026</h1>
+      <p style="margin: 12px 0 0; display: flex; align-items: flex-start; gap: 8px; font-size: 16px; line-height: 24px; font-weight: 700; color: #fcd34d;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 3px;"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg><span>Prazo de entrega: seg., 9 nov., 18:00 (amanhã)</span></p>
+    </div>
+  </section>
+
+  <!-- Overlapping card: summary, month calendar, legend, then the day panel for the selected day. -->
+  <section aria-label="Calendário de disponibilidade" style="position: relative; margin: -48px 16px 0; box-sizing: border-box; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 30px rgba(30,27,75,.12); padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px;">
+      <p style="margin: 0; font-size: 14px; line-height: 20px; color: #475569;">{{summary}}</p>
+      <p role="status" style="margin: 0; font-size: 14px; line-height: 20px; font-weight: 700; color: #155e75;">Guardado</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; text-align: center; font-size: 12px; line-height: 16px; color: #475569;">
+      <span>seg</span><span>ter</span><span>qua</span><span>qui</span><span>sex</span><span>sáb</span><span>dom</span>
+    </div>
+
+    <!-- Six rows, Monday first. Days outside the period are empty spacers. -->
+    <div role="group" aria-label="Novembro de 2026" style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px;">
+      <sc-for list="{{cells}}" as="c" hint-placeholder-count="7">
+        <sc-if value="{{c.blank}}" hint-placeholder-val="{{false}}"><span aria-hidden="true"></span></sc-if>
+        <sc-if value="{{c.inMonth}}" hint-placeholder-val="{{true}}">
+          <button type="button" class="day-btn" onClick="{{c.pick}}" aria-label="{{c.aria}}" aria-pressed="{{c.pressed}}" style="min-height: 52px; padding: 4px 0; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: none; border-radius: 8px; color: #0f172a; font: inherit; cursor: pointer;">
+            <span style="width: 28px; height: 28px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: {{c.numBg}}; color: {{c.numFg}}; font-size: 15px; line-height: 20px; font-weight: {{c.numWeight}};">{{c.num}}</span>
+            <span style="display: flex; gap: 2px;">
+              <span style="width: 18px; height: 18px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; border: 1px solid {{c.uBorder}}; background: {{c.uBg}}; color: {{c.uFg}}; font-size: 12px; line-height: 16px; font-weight: {{c.uWeight}};">U</span>
+              <span style="width: 18px; height: 18px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; border: 1px solid {{c.nBorder}}; background: {{c.nBg}}; color: {{c.nFg}}; font-size: 12px; line-height: 16px; font-weight: {{c.nWeight}};">N</span>
+            </span>
+          </button>
+        </sc-if>
+      </sc-for>
+    </div>
+
+    <!-- Legend: same chip recipes as the grid. -->
+    <div style="display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; line-height: 18px; color: #475569;">
+      <span style="display: inline-flex; align-items: center; gap: 6px;"><span aria-hidden="true" style="width: 18px; height: 18px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; border: 1px solid #059669; background: #ecfdf5; color: #065f46; font-size: 12px; line-height: 16px; font-weight: 700;">U</span>Disponível</span>
+      <span style="display: inline-flex; align-items: center; gap: 6px;"><span aria-hidden="true" style="width: 18px; height: 18px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; border: 1px solid #f59e0b; background: #fffbeb; color: #92400e; font-size: 12px; line-height: 16px; font-weight: 700;">U</span>Se necessário</span>
+      <span style="display: inline-flex; align-items: center; gap: 6px;"><span aria-hidden="true" style="width: 18px; height: 18px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; border: 1px solid transparent; color: #64748b; font-size: 12px; line-height: 16px; font-weight: 400;">U</span>Sem marca</span>
+    </div>
+
+    <!-- Day panel for the selected day. -->
+    <div style="border-top: 1px solid #e2e8f0; padding-top: 12px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; gap: 8px;">
+        <button type="button" class="nav-btn" aria-label="Dia anterior" aria-disabled="{{nav.prevDisabled}}" onClick="{{nav.prev}}" style="width: 44px; height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #cbd5e1; border-radius: 6px; color: #0f172a; cursor: pointer; opacity: {{nav.prevOpacity}};"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+        <h3 style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 700; text-align: center;">{{panel.heading}}</h3>
+        <button type="button" class="nav-btn" aria-label="Dia seguinte" aria-disabled="{{nav.nextDisabled}}" onClick="{{nav.next}}" style="width: 44px; height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #cbd5e1; border-radius: 6px; color: #0f172a; cursor: pointer; opacity: {{nav.nextOpacity}};"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+      </div>
+
+      <sc-for list="{{panel.shifts}}" as="sh" hint-placeholder-count="2">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 6px; font-size: 16px; line-height: 24px; font-weight: 700;"><span>{{sh.name}}</span><sc-if value="{{sh.night}}" hint-placeholder-val="{{false}}"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></sc-if></div>
+            <div style="font-size: 14px; line-height: 20px; color: #475569; font-variant-numeric: tabular-nums;">{{sh.time}}</div>
+            <sc-if value="{{sh.byManager}}" hint-placeholder-val="{{false}}"><div style="font-size: 12px; line-height: 16px; color: #475569;">Pelo gestor</div></sc-if>
+          </div>
+          <div role="group" aria-label="{{sh.group}}" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+            <sc-for list="{{sh.options}}" as="o" hint-placeholder-count="3">
+              <button type="button" class="opt-btn" onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="min-height: 44px; padding: 6px 8px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid {{o.border}}; border-radius: 6px; background: {{o.bg}}; color: {{o.fg}}; font: inherit; font-size: 14px; line-height: 20px; font-weight: 700; cursor: pointer;">
+                <sc-if value="{{o.isAvail}}" hint-placeholder-val="{{false}}"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+                <sc-if value="{{o.isIf}}" hint-placeholder-val="{{false}}"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12h14"></path></svg></sc-if>
+                <span>{{o.label}}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+
+      <button type="button" class="btn-secondary" onClick="{{panel.pickDay}}" style="width: 100%; min-height: 44px; padding: 0 16px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #cbd5e1; border-radius: 6px; color: #0f172a; font: inherit; font-weight: 700; cursor: pointer;">{{panel.dayLabel}}</button>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.state || {};
+    const sel = s.sel || 9;
+    // Keys are day + U (Urgência) or N (Noite). A mark entered by the manager carries by: 'manager' until the doctor changes it.
+    const marks = s.marks || {
+      '2U': { kind: 'available' }, '3U': { kind: 'available' }, '3N': { kind: 'ifNeeded' },
+      '4N': { kind: 'available' }, '5N': { kind: 'available' }, '6U': { kind: 'ifNeeded' },
+      '9U': { kind: 'available' }, '9N': { kind: 'ifNeeded' }, '10N': { kind: 'available' },
+      '11U': { kind: 'ifNeeded' }, '12U': { kind: 'available', by: 'manager' }, '12N': { kind: 'available' }
+    };
+    const look = {
+      available: { bg: '#ecfdf5', border: '#059669', fg: '#065f46', word: 'disponível', weight: 700 },
+      ifNeeded: { bg: '#fffbeb', border: '#f59e0b', fg: '#92400e', word: 'se necessário', weight: 700 },
+      none: { bg: 'transparent', border: 'transparent', fg: '#64748b', word: 'sem marca', weight: 400 }
+    };
+    const shifts = [
+      { code: 'U', name: 'Urgência', time: '08:00–20:00', night: false },
+      { code: 'N', name: 'Noite', time: '20:00–08:00', night: true }
+    ];
+    const wdShort = ['seg.', 'ter.', 'qua.', 'qui.', 'sex.', 'sáb.', 'dom.'];
+    const wdLong = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
+    const pad = (n) => (n < 10 ? '0' : '') + n;
+    // 1 Nov 2026 is a Sunday; wd() gives the Monday-first index of a November day.
+    const wd = (n) => (n + 5) % 7;
+    const kindOf = (key) => (marks[key] ? marks[key].kind : 'none');
+    const setMark = (key, kind) => {
+      const copy = Object.assign({}, marks);
+      if (kind === 'none') delete copy[key]; else copy[key] = { kind: kind };
+      this.setState({ marks: copy });
+    };
+
+    // Grid starts Mon 26/10: i = 6 is 1 Nov, so n = i - 5. Days outside 1..30 are blank.
+    const cells = [];
+    for (let i = 0; i < 42; i++) {
+      const n = i - 5;
+      const inMonth = n >= 1 && n <= 30;
+      const cu = look[inMonth ? kindOf(n + 'U') : 'none'];
+      const cn = look[inMonth ? kindOf(n + 'N') : 'none'];
+      const on = inMonth && n === sel;
+      cells.push({
+        blank: !inMonth, inMonth: inMonth,
+        num: n, pressed: on ? 'true' : 'false',
+        numBg: on ? '#0e7490' : 'transparent', numFg: on ? '#ffffff' : '#0f172a', numWeight: on ? 700 : 400,
+        uBg: cu.bg, uBorder: cu.border, uFg: cu.fg, uWeight: cu.weight,
+        nBg: cn.bg, nBorder: cn.border, nFg: cn.fg, nWeight: cn.weight,
+        aria: wdShort[wd(n)] + ' ' + pad(n) + '/11: Urgência ' + cu.word + ', Noite ' + cn.word + (on ? ', selecionado' : ''),
+        pick: () => this.setState({ sel: n })
+      });
+    }
+
+    const bothOn = kindOf(sel + 'U') === 'available' && kindOf(sel + 'N') === 'available';
+    const pickDay = () => {
+      const copy = Object.assign({}, marks);
+      shifts.forEach((sh) => {
+        const key = sel + sh.code;
+        if (bothOn) delete copy[key]; else copy[key] = { kind: 'available' };
+      });
+      this.setState({ marks: copy });
+    };
+
+    const optDefs = [
+      { k: 'available', label: 'Disponível', on: { border: '#059669', bg: '#ecfdf5', fg: '#065f46' } },
+      { k: 'ifNeeded', label: 'Se necessário', on: { border: '#f59e0b', bg: '#fffbeb', fg: '#92400e' } },
+      { k: 'none', label: 'Não', on: { border: '#64748b', bg: '#f1f5f9', fg: '#334155' } }
+    ];
+    const panelShifts = shifts.map((sh) => {
+      const key = sel + sh.code;
+      const kind = kindOf(key);
+      return {
+        name: sh.name, time: sh.time, night: sh.night,
+        byManager: !!(marks[key] && marks[key].by === 'manager'),
+        group: 'Marca para ' + sh.name,
+        options: optDefs.map((o) => {
+          const on = kind === o.k;
+          const st = on ? o.on : { border: '#cbd5e1', bg: '#ffffff', fg: '#0f172a' };
+          return {
+            label: o.label, pressed: on ? 'true' : 'false',
+            isAvail: on && o.k === 'available', isIf: on && o.k === 'ifNeeded',
+            border: st.border, bg: st.bg, fg: st.fg,
+            pick: () => setMark(key, o.k)
+          };
+        })
+      };
+    });
+
+    const prevDis = sel <= 1;
+    const nextDis = sel >= 30;
+    const nav = {
+      prevDisabled: prevDis ? 'true' : 'false', prevOpacity: prevDis ? '.5' : '1',
+      nextDisabled: nextDis ? 'true' : 'false', nextOpacity: nextDis ? '.5' : '1',
+      prev: () => { if (!prevDis) this.setState({ sel: sel - 1 }); },
+      next: () => { if (!nextDis) this.setState({ sel: sel + 1 }); }
+    };
+    const panel = {
+      heading: wdLong[wd(sel)] + ', ' + pad(sel) + '/11',
+      shifts: panelShifts,
+      dayLabel: bothOn ? 'Limpar dia' : 'Dia e noite',
+      pickDay: pickDay
+    };
+
+    const all = Object.keys(marks).map((k) => marks[k].kind);
+    const count = (k) => all.filter((x) => x === k).length;
+    const summary = count('available') + ' disponível · ' + count('ifNeeded') + ' se necessário. Turnos sem marca contam como indisponível.';
+
+    return { summary: summary, cells: cells, panel: panel, nav: nav };
+  }
+}
+</script>
+</body>
+</html>

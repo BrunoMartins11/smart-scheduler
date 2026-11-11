@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AvailabilityCalendar } from './AvailabilityCalendar'
 
+// Period 07/11 (Sat) to 08/11 (Sun). 07/11 already has marks, so 08/11 is the day that opens.
 const slots = [
   { id: 's1', date: '2026-11-07', templateName: 'Manhã', startTime: '08:00', endTime: '20:00', isNight: false, kind: 'AVAILABLE', enteredByManager: false },
   { id: 's2', date: '2026-11-07', templateName: 'Madrugada', startTime: '20:00', endTime: '08:00', isNight: true, kind: 'IF_NEEDED', enteredByManager: true },
@@ -38,6 +39,10 @@ function gated() {
   return { release, onWrite: async () => (await gate, new Response(null, { status: 204 })) }
 }
 
+// The option buttons of one slot in the day panel.
+const optionsOf = async (template: string) => within(await screen.findByRole('group', { name: `Marca para ${template}` }))
+const dayButton = (pattern: RegExp) => screen.getByRole('button', { name: pattern })
+
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
@@ -45,61 +50,111 @@ afterEach(() => {
 })
 
 describe('AvailabilityCalendar', () => {
-  it('announces each slot state, tags manager entries and summarises the marks', async () => {
+  it('renders the month grid with a chip per slot and opens on the first unmarked day', async () => {
     stubApi()
     renderCalendar()
 
-    const manager = await screen.findByRole('button', { name: 'Madrugada 07/11/2026: Se necessário, introduzido pelo gestor' })
-    expect(within(manager).getByText('Pelo gestor')).toBeTruthy()
-    expect(screen.getByText('Pelo gestor: marcas introduzidas pelo seu gestor.')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Manhã 07/11/2026: Disponível' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Manhã 08/11/2026: Não disponível' })).toBeTruthy()
+    const grid = await screen.findByRole('group', { name: 'Calendário de disponibilidade' })
+    expect(within(grid).getAllByRole('button')).toHaveLength(2)
+    expect(within(grid).getByRole('button', { name: /07\/11: Manhã Disponível, Madrugada Se necessário$/ }).getAttribute('aria-pressed')).toBe('false')
+    expect(within(grid).getByRole('button', { name: /08\/11: Manhã Não disponível, Madrugada Não disponível$/ }).getAttribute('aria-pressed')).toBe('true')
     expect(screen.getByText('1 disponível · 1 se necessário. Turnos sem marca contam como indisponível.')).toBeTruthy()
   })
 
-  it('switches the brush with aria-pressed', async () => {
+  it('shows the panel of the clicked day with its turns', async () => {
     stubApi()
     renderCalendar()
 
-    const available = await screen.findByRole('button', { name: 'Disponível' })
-    const ifNeeded = screen.getByRole('button', { name: 'Se necessário' })
-    expect(available.getAttribute('aria-pressed')).toBe('true')
-    fireEvent.click(ifNeeded)
-    expect(ifNeeded.getAttribute('aria-pressed')).toBe('true')
-    expect(available.getAttribute('aria-pressed')).toBe('false')
+    fireEvent.click(await screen.findByRole('button', { name: /07\/11: Manhã Disponível/ }))
+
+    expect(screen.getByRole('button', { name: /07\/11/ }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByRole('heading', { level: 3, name: /07\/11$/ })).toBeTruthy()
+    expect(screen.getByText('Pelo gestor')).toBeTruthy()
+    expect(screen.getByText('Pelo gestor: marcas introduzidas pelo seu gestor.')).toBeTruthy()
   })
 
-  it('sends one PATCH with the brush mark for a tapped slot and shows it at once', async () => {
+  it('sends one PATCH for Se necessário and shows the chip at once', async () => {
     const fetchMock = stubApi()
     renderCalendar()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Manhã 08/11/2026: Não disponível' }))
+    fireEvent.click((await optionsOf('Manhã')).getByRole('button', { name: 'Se necessário' }))
 
-    expect(await screen.findByRole('button', { name: 'Manhã 08/11/2026: Disponível' })).toBeTruthy()
+    expect(await screen.findByRole('button', { name: /08\/11: Manhã Se necessário, Madrugada Não disponível$/ })).toBeTruthy()
     await waitFor(() => expect(writes(fetchMock)).toHaveLength(1))
     expect(writes(fetchMock)[0][0]).toBe(URL)
-    expect(bodyOf(writes(fetchMock)[0])).toEqual({ marks: [{ slotId: 's3', kind: 'AVAILABLE' }] })
+    expect(bodyOf(writes(fetchMock)[0])).toEqual({ marks: [{ slotId: 's3', kind: 'IF_NEEDED' }] })
   })
 
-  it('clears a slot already holding the brush kind with a null mark', async () => {
+  it('sends a null mark for Não', async () => {
     const fetchMock = stubApi()
     renderCalendar()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Manhã 07/11/2026: Disponível' }))
+    fireEvent.click(await screen.findByRole('button', { name: /07\/11: Manhã Disponível/ }))
+    fireEvent.click((await optionsOf('Manhã')).getByRole('button', { name: 'Não' }))
 
+    expect(await screen.findByRole('button', { name: /07\/11: Manhã Não disponível, Madrugada Se necessário$/ })).toBeTruthy()
     await waitFor(() => expect(writes(fetchMock)).toHaveLength(1))
     expect(bodyOf(writes(fetchMock)[0])).toEqual({ marks: [{ slotId: 's1', kind: null }] })
-    expect(await screen.findByRole('button', { name: 'Manhã 07/11/2026: Não disponível' })).toBeTruthy()
   })
 
-  it('sends one PATCH when the same slot is tapped twice quickly', async () => {
+  it('does not send a mark for the option that is already set', async () => {
+    const fetchMock = stubApi()
+    renderCalendar()
+
+    fireEvent.click(await screen.findByRole('button', { name: /07\/11: Manhã Disponível/ }))
+    fireEvent.click((await optionsOf('Manhã')).getByRole('button', { name: 'Disponível' }))
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(writes(fetchMock)).toHaveLength(0)
+  })
+
+  it('applies Dia e noite to the changed slots only', async () => {
+    const fetchMock = stubApi()
+    renderCalendar()
+
+    fireEvent.click(await screen.findByRole('button', { name: /07\/11: Manhã Disponível/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Dia e noite' }))
+
+    await waitFor(() => expect(writes(fetchMock)).toHaveLength(1))
+    expect(bodyOf(writes(fetchMock)[0])).toEqual({ marks: [{ slotId: 's2', kind: 'AVAILABLE' }] })
+    expect(await screen.findByRole('button', { name: 'Limpar dia' })).toBeTruthy()
+  })
+
+  it('clears the day with Limpar dia when every slot is already available', async () => {
+    const fetchMock = stubApi(availability({ slots: [slots[0], { ...slots[1], kind: 'AVAILABLE', enteredByManager: false }] }))
+    renderCalendar()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Limpar dia' }))
+
+    await waitFor(() => expect(writes(fetchMock)).toHaveLength(1))
+    expect(bodyOf(writes(fetchMock)[0])).toEqual({ marks: [{ slotId: 's1', kind: null }, { slotId: 's2', kind: null }] })
+    expect(await screen.findByRole('button', { name: 'Dia e noite' })).toBeTruthy()
+  })
+
+  it('sends one PATCH when the same option is tapped twice quickly', async () => {
     const { release, onWrite } = gated()
     const fetchMock = stubApi(availability(), onWrite)
     renderCalendar()
 
-    const slot = await screen.findByRole('button', { name: 'Manhã 08/11/2026: Não disponível' })
-    fireEvent.click(slot)
-    fireEvent.click(slot)
+    const option = (await optionsOf('Manhã')).getByRole('button', { name: 'Se necessário' })
+    fireEvent.click(option)
+    fireEvent.click(option)
+
+    release()
+    await screen.findByText(/Guardado/)
+    expect(writes(fetchMock)).toHaveLength(1)
+  })
+
+  it('sends one PATCH when Dia e noite is tapped twice quickly', async () => {
+    const { release, onWrite } = gated()
+    const fetchMock = stubApi(availability(), onWrite)
+    renderCalendar()
+
+    const bulk = await screen.findByRole('button', { name: 'Dia e noite' })
+    fireEvent.click(bulk)
+    fireEvent.click(bulk)
 
     release()
     await screen.findByText(/Guardado/)
@@ -111,126 +166,100 @@ describe('AvailabilityCalendar', () => {
     const fetchMock = stubApi(availability(), onWrite)
     renderCalendar()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Manhã 08/11/2026: Não disponível' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Madrugada 08/11/2026: Não disponível' }))
+    fireEvent.click((await optionsOf('Manhã')).getByRole('button', { name: 'Se necessário' }))
+    fireEvent.click((await optionsOf('Madrugada')).getByRole('button', { name: 'Se necessário' }))
 
     release()
     await waitFor(() => expect(writes(fetchMock)).toHaveLength(2))
-    expect(bodyOf(writes(fetchMock)[1])).toEqual({ marks: [{ slotId: 's4', kind: 'AVAILABLE' }] })
+    expect(bodyOf(writes(fetchMock)[1])).toEqual({ marks: [{ slotId: 's4', kind: 'IF_NEEDED' }] })
   })
 
   it('reverts the slot and shows an alert when the save fails', async () => {
     stubApi(availability(), async () => new Response(null, { status: 500 }))
     renderCalendar()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Manhã 08/11/2026: Não disponível' }))
+    fireEvent.click((await optionsOf('Manhã')).getByRole('button', { name: 'Se necessário' }))
 
     expect((await screen.findByRole('alert')).textContent).toBe('Não foi possível guardar. Tente novamente.')
-    expect(await screen.findByRole('button', { name: 'Manhã 08/11/2026: Não disponível' })).toBeTruthy()
+    expect(await screen.findByRole('button', { name: /08\/11: Manhã Não disponível/ })).toBeTruthy()
   })
 
   it('says the period changed and refetches when the save returns 409', async () => {
     const fetchMock = stubApi(availability(), async () => new Response(null, { status: 409 }))
     renderCalendar()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Manhã 08/11/2026: Não disponível' }))
+    fireEvent.click((await optionsOf('Manhã')).getByRole('button', { name: 'Se necessário' }))
 
     expect((await screen.findByRole('alert')).textContent).toBe('O período mudou entretanto.')
     await waitFor(() => expect(gets(fetchMock)).toHaveLength(2))
   })
 
-  it('applies the brush to a whole day with one PATCH of the changed slots', async () => {
-    const fetchMock = stubApi()
+  it('moves the selection with the arrow keys and clamps it to the period', async () => {
+    stubApi()
     renderCalendar()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Se necessário' }))
-    fireEvent.click(screen.getByRole('button', { name: /^Dia e noite .*07\/11$/ }))
+    const day8 = await screen.findByRole('button', { name: /08\/11: Manhã Não disponível/ })
+    fireEvent.keyDown(day8, { key: 'ArrowLeft' })
 
-    await waitFor(() => expect(writes(fetchMock)).toHaveLength(1))
-    expect(bodyOf(writes(fetchMock)[0])).toEqual({ marks: [{ slotId: 's1', kind: 'IF_NEEDED' }] })
+    const day7 = dayButton(/07\/11: Manhã/)
+    expect(day7.getAttribute('aria-pressed')).toBe('true')
+    expect(document.activeElement).toBe(day7)
+
+    fireEvent.keyDown(day7, { key: 'ArrowDown' })
+    expect(dayButton(/08\/11: Manhã/).getAttribute('aria-pressed')).toBe('true')
+
+    fireEvent.keyDown(dayButton(/08\/11: Manhã/), { key: 'ArrowUp' })
+    expect(dayButton(/07\/11: Manhã/).getAttribute('aria-pressed')).toBe('true')
   })
 
-  it('clears a whole day when every slot already has the brush kind', async () => {
-    const fetchMock = stubApi(availability({ slots: [slots[0], { ...slots[1], kind: 'AVAILABLE', enteredByManager: false }] }))
+  it('disables the previous and next day buttons at the period edges', async () => {
+    stubApi()
     renderCalendar()
 
-    fireEvent.click(await screen.findByRole('button', { name: /^Limpar dia .*07\/11$/ }))
+    await screen.findByRole('button', { name: /08\/11: Manhã/ })
+    const prev = screen.getByRole('button', { name: 'Dia anterior' }) as HTMLButtonElement
+    const next = screen.getByRole('button', { name: 'Dia seguinte' }) as HTMLButtonElement
+    expect(next.disabled).toBe(true)
+    expect(prev.disabled).toBe(false)
 
-    await waitFor(() => expect(writes(fetchMock)).toHaveLength(1))
-    expect(bodyOf(writes(fetchMock)[0])).toEqual({ marks: [{ slotId: 's1', kind: null }, { slotId: 's2', kind: null }] })
+    fireEvent.click(prev)
+
+    expect(dayButton(/07\/11: Manhã/).getAttribute('aria-pressed')).toBe('true')
+    expect(prev.disabled).toBe(true)
+    expect(next.disabled).toBe(false)
   })
 
-  it('sends one PATCH when Dia todo is clicked twice quickly', async () => {
-    const { release, onWrite } = gated()
-    const fetchMock = stubApi(availability(), onWrite)
+  it('shows Sem turnos neste dia. for a day without turns', async () => {
+    stubApi(availability({ slots: [slots[0], slots[1]] }))
     renderCalendar()
 
-    const day = await screen.findByRole('button', { name: /^Dia e noite .*08\/11$/ })
-    fireEvent.click(day)
-    fireEvent.click(day)
+    fireEvent.click(await screen.findByRole('button', { name: /08\/11$/ }))
 
-    release()
-    await screen.findByText(/Guardado/)
-    expect(writes(fetchMock)).toHaveLength(1)
+    expect(screen.getByText('Sem turnos neste dia.')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /08\/11$/ }).getAttribute('aria-pressed')).toBe('true')
   })
 
-  it('applies the brush to every night with one PATCH', async () => {
-    const fetchMock = stubApi()
+  it('shows the short month on day 1 when the period spans two months', async () => {
+    stubApi(availability({ period: { startDate: '2026-11-30', endDate: '2026-12-01', status: 'OPEN', inputDeadline: null }, slots: [] }))
     renderCalendar()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Todas as noites' }))
-
-    await waitFor(() => expect(writes(fetchMock)).toHaveLength(1))
-    expect(bodyOf(writes(fetchMock)[0])).toEqual({
-      marks: [
-        { slotId: 's2', kind: 'AVAILABLE' },
-        { slotId: 's4', kind: 'AVAILABLE' },
-      ],
-    })
+    expect(await screen.findByRole('button', { name: /01\/12$/ })).toBeTruthy()
+    expect(screen.getByText('dez')).toBeTruthy()
   })
 
-  it('clears every night when all of them already have the brush kind', async () => {
-    const fetchMock = stubApi(
-      availability({
-        slots: [slots[0], { ...slots[1], kind: 'AVAILABLE', enteredByManager: false }, slots[2], { ...slots[3], kind: 'AVAILABLE' }],
-      }),
-    )
-    renderCalendar()
-
-    fireEvent.click(await screen.findByRole('button', { name: 'Limpar noites' }))
-
-    await waitFor(() => expect(writes(fetchMock)).toHaveLength(1))
-    expect(bodyOf(writes(fetchMock)[0])).toEqual({
-      marks: [
-        { slotId: 's2', kind: null },
-        { slotId: 's4', kind: null },
-      ],
-    })
-  })
-
-  it('sends one PATCH when Todas as noites is clicked twice quickly', async () => {
-    const { release, onWrite } = gated()
-    const fetchMock = stubApi(availability(), onWrite)
-    renderCalendar()
-
-    const nights = await screen.findByRole('button', { name: 'Todas as noites' })
-    fireEvent.click(nights)
-    fireEvent.click(nights)
-
-    release()
-    await screen.findByText(/Guardado/)
-    expect(writes(fetchMock)).toHaveLength(1)
-  })
-
-  it('renders a closed period read-only: no buttons, and the state word on each slot', async () => {
+  it('renders a closed period read-only: the grid stays selectable, the panel has no option buttons', async () => {
     stubApi(availability({ editable: false, period: { startDate: '2026-11-07', endDate: '2026-11-08', status: 'CLOSED', inputDeadline: null } }))
     renderCalendar()
 
     expect(await screen.findByText('Período fechado. Já não é possível alterar esta disponibilidade.')).toBeTruthy()
-    expect(screen.queryAllByRole('button')).toHaveLength(0)
-    expect(screen.getByRole('group', { name: 'Manhã 07/11/2026: Disponível' })).toBeTruthy()
-    expect(screen.getByRole('group', { name: 'Manhã 08/11/2026: Não disponível' })).toBeTruthy()
+    expect(within(screen.getByRole('group', { name: 'Calendário de disponibilidade' })).getAllByRole('button')).toHaveLength(2)
+    expect(screen.queryByRole('group', { name: /Marca para/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Não' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Dia e noite' })).toBeNull()
     expect(screen.getAllByText('Não disponível').length).toBeGreaterThan(0)
+
+    fireEvent.click(screen.getByRole('button', { name: /07\/11: Manhã/ }))
+    expect(screen.getByText('Disponível', { selector: 'span.font-bold' })).toBeTruthy()
   })
 
   it('shows A guardar… while saving, Guardado after the save, and clears Guardado after two seconds', async () => {
@@ -243,7 +272,7 @@ describe('AvailabilityCalendar', () => {
         for (let i = 0; i < 10; i++) await Promise.resolve()
       })
 
-      fireEvent.click(screen.getByRole('button', { name: 'Manhã 08/11/2026: Não disponível' }))
+      fireEvent.click(within(screen.getByRole('group', { name: 'Marca para Manhã' })).getByRole('button', { name: 'Se necessário' }))
       expect(screen.getByRole('status').textContent).toContain('A guardar…')
 
       await act(async () => {

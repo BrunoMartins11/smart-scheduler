@@ -2,6 +2,14 @@
   "v": 3,
   "attachments": {},
   "boards": {
+    "AppAvailabilityCalendar.dc.html": {
+      "h": 1180,
+      "is_interactive": true,
+      "title": "App · Disponibilidade calendário (doctor)",
+      "w": 390,
+      "x": 1990,
+      "y": 2524
+    },
     "AppAvailabilityMobile.dc.html": {
       "h": 1080,
       "title": "App · Disponibilidade (doctor)",
@@ -115,7 +123,8 @@
     "Availability.dc.html",
     "MySchedule.dc.html",
     "AppEscala.dc.html",
-    "AppAvailabilityMobile.dc.html"
+    "AppAvailabilityMobile.dc.html",
+    "AppAvailabilityCalendar.dc.html"
   ],
   "pages": [],
   "title": "Smart Scheduler UI Mocks"

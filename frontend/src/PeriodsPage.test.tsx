@@ -556,7 +556,7 @@ describe('PeriodsPage', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Disponibilidade de Ana Silva' })
     expect(dialog.hasAttribute('open')).toBe(true)
     expect(screen.getByText('Está a preencher em nome deste membro.')).toBeTruthy()
-    await screen.findByRole('button', { name: /^Manhã 07\/11\/2026: Não disponível$/ })
+    await screen.findByRole('button', { name: /07\/11: Manhã Não disponível/ })
     expect(fetchMock.mock.calls.map(([u]) => u)).toContain(MEMBER_URL)
   })
 
@@ -607,9 +607,9 @@ describe('PeriodsPage', () => {
     renderPage('/escala?team=t1&period=p1')
 
     fireEvent.click(within((await screen.findByRole('rowheader', { name: 'Ana Silva' })).closest('tr')!).getByRole('button', { name: 'Preencher disponibilidade' }))
-    const slot = await screen.findByRole('button', { name: /^Manhã 07\/11\/2026: Não disponível$/ })
-    fireEvent.click(slot)
-    fireEvent.click(slot)
+    const option = within(await screen.findByRole('group', { name: 'Marca para Manhã' })).getByRole('button', { name: 'Disponível' })
+    fireEvent.click(option)
+    fireEvent.click(option)
 
     release()
     await screen.findByText(/Guardado/)

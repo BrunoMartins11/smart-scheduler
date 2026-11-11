@@ -5,6 +5,12 @@ export const parseDay = (iso: string) => {
   const [y, m, d] = iso.split('-').map(Number)
   return new Date(y, m - 1, d)
 }
+// Moves an ISO day by whole calendar days (DST-safe, unlike adding 86400000 ms).
+export const shiftDay = (iso: string, n: number) => {
+  const d = parseDay(iso)
+  d.setDate(d.getDate() + n)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 export const dateText = (iso: string) => parseDay(iso).toLocaleDateString('pt-PT')
 export const rangeText = (p: { startDate: string; endDate: string }) => `${dateText(p.startDate)} – ${dateText(p.endDate)}`
 export const dayLabel = (iso: string) => `${parseDay(iso).toLocaleDateString('pt-PT', { weekday: 'short' })} ${iso.slice(8)}/${iso.slice(5, 7)}`

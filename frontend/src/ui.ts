@@ -24,9 +24,9 @@ export const cellChanged = 'ring-1 ring-inset ring-amber-600 bg-amber-50 text-am
 // Availability (mobile): 44 px targets and the three states from UI_MOCKS.md.
 export const btnWide = `h-11 px-4 inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white text-slate-900 font-bold hover:bg-slate-50 ${control}`
 // Shift chips stack name, times and tag; slate-500 border is the 3:1 boundary for unmarked state.
-export const availBase = `min-h-11 w-full px-2 py-1.5 inline-flex flex-col items-center justify-center gap-0.5 rounded-md border text-sm font-bold ${control}`
-export const brushBase = `min-h-11 w-full px-2 py-1.5 inline-flex items-center justify-center rounded-md border text-base font-bold ${control}`
-export const availNone = 'border-slate-500 bg-white text-slate-600 hover:bg-slate-50'
+// Day chip: one per slot under the day number. The state colours come from availYes / availIf.
+export const chip = 'size-[18px] inline-flex items-center justify-center rounded border text-xs leading-4'
+export const btnOption = `min-h-11 px-2 py-1.5 inline-flex items-center justify-center gap-1 rounded-md border text-sm font-bold ${control}`
 export const availYes = 'border-emerald-600 bg-emerald-50 text-emerald-800'
 export const availIf = 'border-amber-500 bg-amber-50 text-amber-800'
 

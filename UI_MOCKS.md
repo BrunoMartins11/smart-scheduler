@@ -11,7 +11,7 @@ The mocks use **only Tailwind's default palette and spacing scale**, so every st
 | Landing | Everyone signed out, desktop + mobile | E1, D7 | Sign-in only (invite-only, no signup). Night-shift hero (indigo-950 + decorative SVG: faint rota grid, sun→moon arc, stars), product preview card, rules strip, how it works, for doctors / for managers, 3 FAQs, footer. Mobile drops the preview card and the background grid. |
 | Schedule review | Manager, desktop | E7, E9 | Google Calendar-style: sidebar (mini month, doctors as toggleable calendars with fairness stats), Week time grid and 2-week view, shift popover, Run engine, Publish |
 | Unfilled shift | Manager, side drawer | E8, E9, D2 | Suggested fix, exclusion reasons grouped by rule, "Assign anyway" with a mandatory comment |
-| Availability | Doctor, mobile | E6 | Pick a mark (Available or If needed), then tap shifts. Unmarked shifts mean not available. Shows the deadline. |
+| Availability | Doctor, mobile | E6 | Month calendar: tap a day, then set each turn to Disponível, Se necessário or Não. Unmarked turns mean not available. Shows the deadline. |
 | My shifts | Doctor, mobile | E10 | Next shifts, plus a "Is this fair to me?" comparison with the team |
 
 Copy in the mocks is English. The pilot UI ships in **PT-PT** through i18n.
@@ -78,13 +78,13 @@ gap ? <a className="px-1.5 h-5 rounded bg-red-100 text-red-700 text-xs font-bold
 
 // 2-week view: grid-cols-7, each day cell min-h-44 with h-6 chips: icon + "08"/"20" + name (truncate)
 
-// Availability states (shift buttons on mobile, h-11 = 44px touch target)
-const avail = {
-  AVAILABLE: "border-emerald-600 bg-emerald-50 text-emerald-800",  // + Check icon
-  IF_NEEDED: "border-amber-500 bg-amber-50 text-amber-800",        // + Minus icon
-  NONE:      "border-slate-200 bg-white text-slate-600",           // not available
+// Availability states (calendar chips, 18 px, one per turn; panel option buttons, h-11 = 44px)
+const chip = {
+  AVAILABLE: "border-emerald-600 bg-emerald-50 text-emerald-800 font-bold",  // availYes
+  IF_NEEDED: "border-amber-500 bg-amber-50 text-amber-800 font-bold",        // availIf
+  NONE:      "border-transparent text-slate-500",                           // letter only
 };
-<button className={`w-full h-11 rounded-md border text-xs font-bold ${avail[state]}`}>…</button>
+<span className={`size-[18px] rounded border text-xs ${chip[state]}`}>{initial}</span>
 
 // Fairness bar: you vs team average
 <div className="relative h-1.5 rounded-full bg-slate-200">
@@ -108,8 +108,8 @@ TwoWeekView         day cells with ShiftChip / UnfilledSlot, "over max" badge
 ShiftPopover        doctor, date, time, rule break; Change to day/night, Unassign
 ShiftDrawer         slot header, assigned list, SuggestedFix, ReasonGroup[]
   OverrideForm      required comment → assignment.override_comment
-AvailabilityBrush   2 marks: Available, If needed (aria-pressed); tapping a marked shift again clears it
-AvailabilityDayRow  date + Day/Night AvailabilityButton
+AvailabilityCalendar  Monday-first month grid (7 columns); each day is a button with one chip per turn (template initial, state colour); legend below.
+                    Day panel: ‹ heading › (44 px, disabled at the period edges), then per turn Disponível / Se necessário / Não (aria-pressed) and a "Dia e noite" button.
 MyShiftsList        next 4 shifts + "See all"
 FairnessCard        one-line verdict + 3 numbers (hours, nights, if-needed used)
 ```
@@ -170,12 +170,12 @@ Page description strings (keys in `messages.ts`):
 
 - Real `<button>`, `<a>`, `<label>` and `<textarea>` elements throughout. Icon-only buttons have an `aria-label`.
 - Touch targets are 44 px on mobile. On the desktop calendar, each event is a `<button>` whose `aria-label` names the doctor, date, shift and any rule break. The popover closes on Esc; in production also move focus into it on open, trap it there, and return it to the event on close. Every control gets `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-700`. Rule breaks show a warning icon as well as the orange ring. The smallest text on the calendar is 12 px.
-- The availability brush uses `aria-pressed`. Each shift button should announce its state, for example "Day, Available" or "Night, Not available".
+- Each day is a `<button>` with `aria-pressed` for the selected day, and its `aria-label` lists the day and each turn's state word, for example "sáb. 07/11: Manhã Disponível, Madrugada Não disponível". Day cells use a roving tabindex: arrow keys move by a day or a week, clamped to the period, and move focus with them. The option buttons in the panel use `aria-pressed` too, and each state also has an icon and a word, so colour is never the only cue.
 
 ### Availability: deliberate deviations from the mock
 
-- Shortcuts are "Dia e noite" (per day) and "Todas as noites", and they become "Limpar dia" / "Limpar noites" when everything they touch already has the brush's mark.
-- The page scrolls as a whole with a sticky brush bar, instead of an inner scroll area.
+- "Dia e noite" (per day) becomes "Limpar dia" when every turn of that day is already Disponível. There is no "Todas as noites" shortcut.
+- The calendar is not sticky: the page scrolls as a whole, and the day panel sits under the grid.
 - A manager enters a member's availability in a modal `<dialog>` from the Escala submissions table, not inline.
 
 ### Landing: PT-PT copy
